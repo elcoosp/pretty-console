@@ -1,0 +1,6 @@
+---
+source: src/lib.rs
+expression: messages
+---
+- "\u001b[1;38;5;1mError: File not found\u001b[0m"
+- "\u001b[1;38;5;1mError: Permission denied\u001b[0m"

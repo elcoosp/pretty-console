@@ -1,0 +1,7 @@
+---
+source: src/lib.rs
+expression: outputs
+---
+- "\u001b[1;38;5;1mError style\u001b[0m"
+- "\u001b[3;38;5;3mWarning style\u001b[0m"
+- "\u001b[1;38;5;2mSuccess style\u001b[0m"

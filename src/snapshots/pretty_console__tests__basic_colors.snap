@@ -1,0 +1,5 @@
+---
+source: src/lib.rs
+expression: console.to_string()
+---
+"\u001b[1;38;5;1mHello, world!\u001b[0m"

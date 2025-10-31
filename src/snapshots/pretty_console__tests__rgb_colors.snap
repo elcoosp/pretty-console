@@ -1,0 +1,5 @@
+---
+source: src/lib.rs
+expression: console.to_string()
+---
+"\u001b[4;38;2;255;0;128;48;2;0;255;0mRGB Text\u001b[0m"

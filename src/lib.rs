@@ -880,4 +880,53 @@ mod tests {
         #[cfg(feature = "no-color")]
         assert_eq!(output, "test");
     }
+    #[test]
+    fn test_basic_colors() {
+        let console = Console::new("Hello, world!").red().bold();
+        insta::assert_yaml_snapshot!(console.to_string());
+    }
+
+    #[test]
+    fn test_rgb_colors() {
+        let console = Console::new("RGB Text")
+            .fg_rgb(255, 0, 128)
+            .bg_rgb(0, 255, 0)
+            .underline();
+        insta::assert_yaml_snapshot!(console.to_string());
+    }
+
+    #[test]
+    fn test_complex_styling() {
+        let console = Console::new("Complex Style")
+            .bright_red()
+            .on_bright_white()
+            .bold()
+            .italic()
+            .blink();
+        insta::assert_yaml_snapshot!(console.to_string());
+    }
+    #[test]
+    fn test_style_combinations() {
+        let styles = vec![
+            Console::new("Error style").red().bold(),
+            Console::new("Warning style").yellow().italic(),
+            Console::new("Success style").green().bold(),
+        ];
+
+        let outputs: Vec<String> = styles.iter().map(|c| c.to_string()).collect();
+        insta::assert_yaml_snapshot!(outputs);
+    }
+
+    #[test]
+    fn test_reusable_style() {
+        let error_style = Console::new("").red().bold();
+        let messages = vec![
+            error_style.with_text("Error: File not found").to_string(),
+            error_style
+                .with_text("Error: Permission denied")
+                .to_string(),
+        ];
+
+        insta::assert_yaml_snapshot!(messages);
+    }
 }
