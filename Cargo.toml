@@ -1,0 +1,16 @@
+[package]
+name = "pretty-console"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+[[example]]
+name = "demo"
+path = "examples/demo.rs"
+
+[[example]]
+name = "advanced"
+path = "examples/advanced.rs"
+
+[features]
+no-color= []
