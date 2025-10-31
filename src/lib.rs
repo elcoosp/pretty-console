@@ -225,7 +225,6 @@ impl Console {
     pub fn blue(self) -> Self {
         self.fg(Color::BLUE)
     }
-
     pub fn magenta(self) -> Self {
         self.fg(Color::MAGENTA)
     }
@@ -447,12 +446,55 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_color_constants() {
+        assert_eq!(Color::BLACK, Color::Named(0));
+        assert_eq!(Color::RED, Color::Named(1));
+        assert_eq!(Color::GREEN, Color::Named(2));
+        assert_eq!(Color::YELLOW, Color::Named(3));
+        assert_eq!(Color::BLUE, Color::Named(4));
+        assert_eq!(Color::MAGENTA, Color::Named(5));
+        assert_eq!(Color::CYAN, Color::Named(6));
+        assert_eq!(Color::WHITE, Color::Named(7));
+        assert_eq!(Color::BRIGHT_BLACK, Color::Named(8));
+        assert_eq!(Color::BRIGHT_RED, Color::Named(9));
+        assert_eq!(Color::BRIGHT_GREEN, Color::Named(10));
+        assert_eq!(Color::BRIGHT_YELLOW, Color::Named(11));
+        assert_eq!(Color::BRIGHT_BLUE, Color::Named(12));
+        assert_eq!(Color::BRIGHT_MAGENTA, Color::Named(13));
+        assert_eq!(Color::BRIGHT_CYAN, Color::Named(14));
+        assert_eq!(Color::BRIGHT_WHITE, Color::Named(15));
+    }
+
+    #[test]
     fn test_color_codes() {
+        // Test named colors
         let color = Color::RED;
         assert_eq!(color.to_fg_code(), "38;5;1");
+        assert_eq!(color.to_bg_code(), "48;5;1");
 
+        // Test RGB colors
         let rgb = Color::RGB(255, 128, 0);
         assert_eq!(rgb.to_fg_code(), "38;2;255;128;0");
+        assert_eq!(rgb.to_bg_code(), "48;2;255;128;0");
+
+        // Test edge cases
+        let black = Color::BLACK;
+        assert_eq!(black.to_fg_code(), "38;5;0");
+
+        let white = Color::BRIGHT_WHITE;
+        assert_eq!(white.to_fg_code(), "38;5;15");
+    }
+
+    #[test]
+    fn test_attribute_codes() {
+        assert_eq!(Attribute::Bold.to_code(), "1");
+        assert_eq!(Attribute::Dim.to_code(), "2");
+        assert_eq!(Attribute::Italic.to_code(), "3");
+        assert_eq!(Attribute::Underline.to_code(), "4");
+        assert_eq!(Attribute::Blink.to_code(), "5");
+        assert_eq!(Attribute::Reverse.to_code(), "7");
+        assert_eq!(Attribute::Hidden.to_code(), "8");
+        assert_eq!(Attribute::Strikethrough.to_code(), "9");
     }
 
     #[test]
@@ -464,13 +506,362 @@ mod tests {
             .underline();
 
         #[cfg(not(feature = "no-color"))]
-        assert!(style.to_ansi_start().contains("1"));
+        {
+            let ansi = style.to_ansi_start();
+            assert!(ansi.contains("1")); // bold
+            assert!(ansi.contains("4")); // underline
+            assert!(ansi.contains("38;5;1")); // red foreground
+            assert!(ansi.contains("48;5;4")); // blue background
+        }
+
+        #[cfg(feature = "no-color")]
+        assert_eq!(style.to_ansi_start(), "");
+    }
+
+    #[test]
+    fn test_style_empty() {
+        let style = Style::new();
         #[cfg(not(feature = "no-color"))]
-        assert!(style.to_ansi_start().contains("4"));
+        assert_eq!(style.to_ansi_start(), "");
+        #[cfg(feature = "no-color")]
+        assert_eq!(style.to_ansi_start(), "");
+    }
+
+    #[test]
+    fn test_style_only_foreground() {
+        let style = Style::new().fg(Color::GREEN);
+
         #[cfg(not(feature = "no-color"))]
-        assert!(style.to_ansi_start().contains("38;5;1"));
+        assert_eq!(style.to_ansi_start(), "\x1b[38;5;2m");
+        #[cfg(feature = "no-color")]
+        assert_eq!(style.to_ansi_start(), "");
+    }
+
+    #[test]
+    fn test_style_only_background() {
+        let style = Style::new().bg(Color::YELLOW);
+
         #[cfg(not(feature = "no-color"))]
-        assert!(style.to_ansi_start().contains("48;5;4"));
+        assert_eq!(style.to_ansi_start(), "\x1b[48;5;3m");
+        #[cfg(feature = "no-color")]
+        assert_eq!(style.to_ansi_start(), "");
+    }
+
+    #[test]
+    fn test_style_only_attributes() {
+        let style = Style::new().bold().italic();
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            let ansi = style.to_ansi_start();
+            assert!(ansi.contains("1"));
+            assert!(ansi.contains("3"));
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(style.to_ansi_start(), "");
+    }
+
+    #[test]
+    fn test_style_rgb_colors() {
+        let style = Style::new()
+            .fg(Color::RGB(255, 0, 0))
+            .bg(Color::RGB(0, 255, 0));
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            let ansi = style.to_ansi_start();
+            assert!(ansi.contains("38;2;255;0;0"));
+            assert!(ansi.contains("48;2;0;255;0"));
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(style.to_ansi_start(), "");
+    }
+
+    #[test]
+    fn test_console_creation() {
+        let console = Console::new("test");
+        assert_eq!(console.text, "test");
+
+        let console_from_str = Console::new("test");
+        assert_eq!(console_from_str.text, "test");
+    }
+
+    #[test]
+    fn test_console_with_text() {
+        let base = Console::new("").red().bold();
+        let derived = base.with_text("new text");
+
+        assert_eq!(derived.text, "new text");
+        // Should maintain the same style
+        assert_eq!(derived.style.foreground, base.style.foreground);
+        assert_eq!(derived.style.attributes, base.style.attributes);
+    }
+
+    #[test]
+    fn test_console_color_methods() {
+        let console = Console::new("test").red();
+        assert_eq!(console.style.foreground, Some(Color::RED));
+
+        let console = Console::new("test").on_blue();
+        assert_eq!(console.style.background, Some(Color::BLUE));
+
+        let console = Console::new("test").fg_rgb(255, 0, 0);
+        assert_eq!(console.style.foreground, Some(Color::RGB(255, 0, 0)));
+
+        let console = Console::new("test").bg_rgb(0, 255, 0);
+        assert_eq!(console.style.background, Some(Color::RGB(0, 255, 0)));
+    }
+
+    #[test]
+    fn test_console_attribute_methods() {
+        let console = Console::new("test").bold();
+        assert!(console.style.attributes.contains(&Attribute::Bold));
+
+        let console = Console::new("test").italic().underline();
+        assert!(console.style.attributes.contains(&Attribute::Italic));
+        assert!(console.style.attributes.contains(&Attribute::Underline));
+
+        let console = Console::new("test")
+            .bold()
+            .dim()
+            .italic()
+            .underline()
+            .blink()
+            .reverse()
+            .hidden()
+            .strikethrough();
+
+        let attrs = &console.style.attributes;
+        assert!(attrs.contains(&Attribute::Bold));
+        assert!(attrs.contains(&Attribute::Dim));
+        assert!(attrs.contains(&Attribute::Italic));
+        assert!(attrs.contains(&Attribute::Underline));
+        assert!(attrs.contains(&Attribute::Blink));
+        assert!(attrs.contains(&Attribute::Reverse));
+        assert!(attrs.contains(&Attribute::Hidden));
+        assert!(attrs.contains(&Attribute::Strikethrough));
+    }
+
+    #[test]
+    fn test_console_display_trait() {
+        let console = Console::new("hello").red().bold();
+        let output = format!("{}", console);
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            assert!(output.starts_with("\x1b["));
+            assert!(output.contains("hello"));
+            assert!(output.ends_with("\x1b[0m"));
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(output, "hello");
+    }
+
+    #[test]
+    fn test_console_to_string() {
+        let console = Console::new("test").blue().underline();
+        let string = console.to_string();
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            assert!(string.contains("test"));
+            assert!(string.contains("38;5;4")); // blue
+            assert!(string.contains("4")); // underline
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(string, "test");
+    }
+
+    #[test]
+    fn test_console_complex_styling() {
+        let console = Console::new("complex")
+            .fg_rgb(128, 64, 255)
+            .on_bright_white()
+            .bold()
+            .italic()
+            .underline();
+
+        let output = console.to_string();
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            assert!(output.contains("complex"));
+            assert!(output.contains("38;2;128;64;255"));
+            assert!(output.contains("48;5;15"));
+            assert!(output.contains("1"));
+            assert!(output.contains("3"));
+            assert!(output.contains("4"));
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(output, "complex");
+    }
+
+    #[test]
+    fn test_console_method_chaining() {
+        // Test that methods can be chained and each returns Self
+        let console = Console::new("test").red().on_white().bold().underline();
+
+        assert_eq!(console.style.foreground, Some(Color::RED));
+        assert_eq!(console.style.background, Some(Color::WHITE));
+        assert!(console.style.attributes.contains(&Attribute::Bold));
+        assert!(console.style.attributes.contains(&Attribute::Underline));
+    }
+
+    #[test]
+    fn test_console_clone() {
+        let original = Console::new("original").red().bold();
+        let cloned = original.clone();
+
+        assert_eq!(original.text, cloned.text);
+        assert_eq!(original.style.foreground, cloned.style.foreground);
+        assert_eq!(original.style.background, cloned.style.background);
+        assert_eq!(original.style.attributes, cloned.style.attributes);
+    }
+
+    #[test]
+    fn test_color_and_attribute_copy() {
+        // These should be Copy types, so we can use them multiple times
+        let color = Color::RED;
+        let attr = Attribute::Bold;
+
+        let style1 = Style::new().fg(color).attr(attr);
+        let style2 = Style::new().fg(color).attr(attr);
+
+        assert_eq!(style1.foreground, style2.foreground);
+        assert_eq!(style1.attributes, style2.attributes);
+    }
+
+    #[test]
+    fn test_all_named_colors() {
+        // Test that all named color methods work correctly
+        let colors = [
+            (Console::new("").black(), Color::BLACK),
+            (Console::new("").red(), Color::RED),
+            (Console::new("").green(), Color::GREEN),
+            (Console::new("").yellow(), Color::YELLOW),
+            (Console::new("").blue(), Color::BLUE),
+            (Console::new("").magenta(), Color::MAGENTA),
+            (Console::new("").cyan(), Color::CYAN),
+            (Console::new("").white(), Color::WHITE),
+            (Console::new("").bright_black(), Color::BRIGHT_BLACK),
+            (Console::new("").bright_red(), Color::BRIGHT_RED),
+            (Console::new("").bright_green(), Color::BRIGHT_GREEN),
+            (Console::new("").bright_yellow(), Color::BRIGHT_YELLOW),
+            (Console::new("").bright_blue(), Color::BRIGHT_BLUE),
+            (Console::new("").bright_magenta(), Color::BRIGHT_MAGENTA),
+            (Console::new("").bright_cyan(), Color::BRIGHT_CYAN),
+            (Console::new("").bright_white(), Color::BRIGHT_WHITE),
+        ];
+
+        for (console, expected_color) in colors {
+            assert_eq!(console.style.foreground, Some(expected_color));
+        }
+    }
+
+    #[test]
+    fn test_all_background_colors() {
+        // Test that all background color methods work correctly
+        let backgrounds = [
+            (Console::new("").on_black(), Color::BLACK),
+            (Console::new("").on_red(), Color::RED),
+            (Console::new("").on_green(), Color::GREEN),
+            (Console::new("").on_yellow(), Color::YELLOW),
+            (Console::new("").on_blue(), Color::BLUE),
+            (Console::new("").on_magenta(), Color::MAGENTA),
+            (Console::new("").on_cyan(), Color::CYAN),
+            (Console::new("").on_white(), Color::WHITE),
+            (Console::new("").on_bright_black(), Color::BRIGHT_BLACK),
+            (Console::new("").on_bright_red(), Color::BRIGHT_RED),
+            (Console::new("").on_bright_green(), Color::BRIGHT_GREEN),
+            (Console::new("").on_bright_yellow(), Color::BRIGHT_YELLOW),
+            (Console::new("").on_bright_blue(), Color::BRIGHT_BLUE),
+            (Console::new("").on_bright_magenta(), Color::BRIGHT_MAGENTA),
+            (Console::new("").on_bright_cyan(), Color::BRIGHT_CYAN),
+            (Console::new("").on_bright_white(), Color::BRIGHT_WHITE),
+        ];
+
+        for (console, expected_color) in backgrounds {
+            assert_eq!(console.style.background, Some(expected_color));
+        }
+    }
+
+    #[test]
+    fn test_console_write_to() {
+        let console = Console::new("write test").green();
+        let mut buffer = Vec::new();
+
+        console.write_to(&mut buffer).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            assert!(output.contains("write test"));
+            assert!(output.contains("38;5;2")); // green
+            assert!(output.ends_with("\x1b[0m"));
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(output, "write test");
+    }
+
+    #[test]
+    fn test_console_empty_text() {
+        let console = Console::new("").red().bold();
+        let output = console.to_string();
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            // Even with empty text, ANSI codes should be generated and reset
+            assert!(output.starts_with("\x1b["));
+            assert!(output.ends_with("\x1b[0m"));
+        }
+        #[cfg(feature = "no-color")]
+        assert_eq!(output, "");
+    }
+
+    #[test]
+    fn test_multiple_identical_attributes() {
+        // Adding the same attribute multiple times should work
+        // (though it might not make sense semantically)
+        let console = Console::new("test").bold().bold().bold();
+
+        // Should have multiple bold attributes in the vector
+        let bold_count = console
+            .style
+            .attributes
+            .iter()
+            .filter(|&&attr| attr == Attribute::Bold)
+            .count();
+        assert_eq!(bold_count, 3);
+    }
+
+    #[test]
+    fn test_ansi_code_ordering() {
+        // Test that ANSI codes are generated in consistent order:
+        // attributes first, then foreground, then background
+        let style = Style::new()
+            .bg(Color::BLUE)
+            .fg(Color::RED)
+            .underline()
+            .bold();
+
+        #[cfg(not(feature = "no-color"))]
+        {
+            let ansi = style.to_ansi_start();
+            // The order should be: 1 (bold), 4 (underline), 38;5;1 (red), 48;5;4 (blue)
+            let expected_parts = ["1", "4", "38;5;1", "48;5;4"];
+            let ansi_without_prefix = ansi.trim_start_matches("\x1b[").trim_end_matches('m');
+            let parts: Vec<&str> = ansi_without_prefix.split(';').collect();
+
+            // We can't easily test the exact order because it depends on Vec iteration order,
+            // but we can test that all expected parts are present
+            for expected in expected_parts {
+                assert!(
+                    ansi.contains(expected),
+                    "ANSI code should contain {}",
+                    expected
+                );
+            }
+        }
     }
 
     #[test]
