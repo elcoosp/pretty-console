@@ -2,8 +2,13 @@
 name = "pretty-console"
 version = "1.0.0"
 edition = "2024"
+description = "A fluent, zero-cost API for styling terminal text with colors and attributes"
+repository = "https://github.com/elcoosp/pretty-console"
+readme = "README.md"
+license = "MIT"
+keywords = ["terminal", "color", "style", "ansi", "console", "formatting"]
+categories = ["text-processing"]
 
-[dependencies]
 [[example]]
 name = "demo"
 path = "examples/demo.rs"
