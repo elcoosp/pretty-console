@@ -1,6 +1,6 @@
 [package]
 name = "pretty-console"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 description = "A fluent, zero-cost API for styling terminal text with colors and attributes"
 repository = "https://github.com/elcoosp/pretty-console"
