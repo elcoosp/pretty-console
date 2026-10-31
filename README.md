@@ -1,203 +1,173 @@
-# `pretty-console`
+<div align="center">
+  <img src="docs/logo.png" alt="pretty-console Logo" width="200"/>
+  <p>
+    <strong>A fluent, zero-cost API for styling terminal text with colors and attributes, written in Rust.</strong><br/>
+    Zero runtime dependencies, a chainable builder, reusable styles, 256-color and true-color support, log-level helpers and runtime color detection — everything compiles down to plain ANSI escape codes that work in any modern terminal.
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/Rust-1.85%2B%20%7C%202024-000000?style=flat-square&logo=rust" alt="Rust"/>
+    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License MIT"/>
+    <img src="https://img.shields.io/crates/v/pretty_console?style=flat-square" alt="Crates.io"/>
+    <img src="https://img.shields.io/docsrs/pretty_console?style=flat-square" alt="Docs.rs"/>
+    <img src="https://img.shields.io/badge/Deps-Zero-brightgreen?style=flat-square" alt="Zero dependencies"/>
+    <img src="https://img.shields.io/badge/Coverage-100%25-brightgreen?style=flat-square" alt="Coverage 100%"/>
+    <img src="https://img.shields.io/badge/Build-Passing-brightgreen?style=flat-square&logo=githubactions" alt="Build"/>
+  </p>
+</div>
 
-[![Crates.io](https://img.shields.io/crates/v/pretty_console)](https://crates.io/crates/pretty_console)
-[![Documentation](https://docs.rs/pretty_console/badge.svg)](https://docs.rs/pretty_console)
-[![License](https://img.shields.io/crates/l/pretty_console)](LICENSE)
+---
 
-A fluent, zero-cost API for styling terminal text with colors and attributes. Write beautifully formatted console output with an intuitive, chainable interface.
+`pretty-console` makes terminal output pleasant to write and to read. Build styled strings with a fluent API, reuse them as templates, paint string literals directly with the [`Styled`] trait, and let the runtime honor standard conventions like `NO_COLOR` — all without pulling in a single dependency.
 
 ## Features
 
-- 🎨 **Rich Color Support**: 16 named colors, 256 colors, and true color RGB
-- ⚡ **Zero-Cost Abstractions**: Builder pattern compiles to efficient code
-- 🔧 **Fluent API**: Chainable methods for intuitive styling
-- 📝 **Text Attributes**: Bold, italic, underline, blink, reverse, and more
-- 🌍 **Cross-Platform**: ANSI escape codes with Windows 10+ support
-- 🎯 **Flexible Output**: Print immediately or get formatted strings
-- 🔄 **Reusable Styles**: Create style templates and reuse them
-- 🚫 **No-Color Support**: Optional feature to disable all coloring
+- **Fluent builder** — chain colors and attributes: `Console::new("hi").red().bold()`
+- **Rich colors** — 16 named colors, the full 256-color palette, 24-bit RGB and `0xRRGGBB` hex
+- **Text attributes** — bold, dim, italic, underline, blink, reverse, hidden, strikethrough
+- **`Styled` trait** — paint literals in place: `"hello".green().underline()`
+- **Reusable styles** — build a `Style` once, apply it to many strings, or merge styles together
+- **Log-level helpers** — `info`, `warn`, `error`, `success` and `debug` constructors with tasteful defaults
+- **Banners** — one-liner centered section headers for CLIs
+- **Runtime color control** — `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR` and `TERM=dumb` support out of the box
+- **ANSI stripping** — `strip_ansi` removes escape sequences from any string
+- **Width-aware formatting** — `format!("{:>20}", styled)` pads by *visible* width, not by ANSI-decorated length
+- **`no-color` feature** — compile out all styling entirely for embedded or minimal builds
 
-## Quick Start
+## Quick start
 
-Add this to your `Cargo.toml`:
-
-```toml
-[dependencies]
-pretty_console = "0.1.0"
+```sh
+cargo add pretty-console
 ```
 
-Basic usage:
-
 ```rust
-use pretty_console::Console;
+use pretty_console::{Console, Styled};
 
 fn main() {
     Console::new("Hello, world!").red().bold().println();
     Console::new("This is a warning").yellow().underline().println();
     Console::new("Success!").green().on_black().println();
+
+    // Or paint a literal directly.
+    println!("{}", "Ready to go".cyan());
 }
 ```
 
-## Examples
+## Usage
 
-### Basic Styling
+### Builder API and reusable styles
 
 ```rust
 use pretty_console::Console;
 
-// Simple color and attribute combinations
+// Simple color and attribute combinations.
 Console::new("Error message").red().bold().println();
-Console::new("Warning message").yellow().italic().println();
-Console::new("Info message").blue().underline().println();
 
-// Background colors
-Console::new("Inverted").white().on_red().println();
-```
-
-### RGB Colors
-
-```rust
-Console::new("Custom color!").fg_rgb(255, 0, 128).println();
-Console::new("Gradient").bg_rgb(128, 255, 0).println();
-```
-
-### Multiple Attributes
-
-```rust
-Console::new("Important notice!")
-    .bright_red()
-    .on_bright_yellow()
-    .bold()
-    .italic()
-    .underline()
-    .blink()
-    .println();
-```
-
-### Reusable Styles
-
-```rust
-use pretty_console::Console;
-
-// Create a style template
+// A style template you can reuse with different text.
 let error_style = Console::new("").red().bold();
-let warning_style = Console::new("").yellow().italic();
-let success_style = Console::new("").green().bold();
-
-// Reuse with different text
-error_style.with_text("Error: File not found").println();
-warning_style.with_text("Warning: Deprecated API").println();
-success_style.with_text("Success: Operation completed").println();
+error_style.with_text("Error: file not found").println();
+error_style.with_text("Error: permission denied").println();
 ```
 
-### Using with Format Strings
-
-```rust
-use pretty_console::Console;
-
-let username = "Alice";
-let status = Console::new("online").green().bold();
-
-println!("User {} is {}", username, status);
-// Output: User Alice is online (with "online" in green and bold)
-```
-
-### Advanced Style Management
+### Predefined styles, merging and hex colors
 
 ```rust
 use pretty_console::{Console, Style, Color};
 
-// Create predefined styles
-let heading_style = Style::new()
-    .fg(Color::BRIGHT_BLUE)
-    .bold()
-    .underline();
+let heading = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
+Console::new_with_style("Chapter 1", heading.clone()).println();
 
-let note_style = Style::new()
-    .fg(Color::BRIGHT_BLACK)
-    .italic();
+// Merge styles: the second style wins for colors, attributes are appended.
+let emphasis = Style::new().fg(Color::RED);
+Console::new_with_style("Important", heading.merge(emphasis)).println();
 
-// Use the styles
-Console::new_with_style("Chapter 1: Introduction", heading_style).println();
-Console::new_with_style("Note: This is important", note_style).println();
+// True color, straight from hex.
+Console::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
 ```
 
-## API Reference
-
-### Color Constants
+### Log-level helpers and banners
 
 ```rust
-// Basic colors
-Color::BLACK, Color::RED, Color::GREEN, Color::YELLOW
-Color::BLUE, Color::MAGENTA, Color::CYAN, Color::WHITE
+use pretty_console::Console;
 
-// Bright colors
-Color::BRIGHT_BLACK, Color::BRIGHT_RED, Color::BRIGHT_GREEN
-Color::BRIGHT_YELLOW, Color::BRIGHT_BLUE, Color::BRIGHT_MAGENTA
-Color::BRIGHT_CYAN, Color::BRIGHT_WHITE
+Console::info("Compiling 42 modules").println();     // [INFO] …, cyan
+Console::success("Tests passed").println();          // [OK] …, bold green
+Console::warn("Deprecated API").println();           // [WARN] …, yellow
+Console::error("Disk full").println();               // [ERROR] …, bold red
+Console::debug("cache_size = 42").println();         // [DEBUG] …, dim
+
+Console::banner("Build report", 60).println();       // ────── Build report ──────
 ```
 
-### Console Methods
+### Runtime color control
 
-#### Color Setters
-- `fg(color)`, `bg(color)` - Set foreground/background color
-- `fg_rgb(r, g, b)`, `bg_rgb(r, g, b)` - Set RGB colors
-- `red()`, `green()`, `blue()`, etc. - Foreground color shortcuts
-- `on_red()`, `on_green()`, `on_blue()`, etc. - Background color shortcuts
+Printing respects the global [`ColorChoice`], which you can set from your own CLI flags:
 
-#### Attribute Setters
-- `bold()`, `italic()`, `underline()`, `blink()`
-- `dim()`, `reverse()`, `hidden()`, `strikethrough()`
+```rust
+use pretty_console::{set_color_choice, ColorChoice};
 
-#### Output Methods
-- `print()` - Print without newline
-- `println()` - Print with newline
-- `write_to(writer)` - Write to any `std::io::Write`
-- `to_string()` - Get formatted string
+// e.g. after parsing a --color flag from your CLI:
+set_color_choice(ColorChoice::Never);
+```
 
-## No-Color Support
+| Choice | Behavior |
+| --- | --- |
+| `ColorChoice::Auto` (default) | Honors the environment variables below, then falls back to stdout terminal detection |
+| `ColorChoice::Always` | Always emit colors |
+| `ColorChoice::Never` | Never emit colors |
 
-For environments where terminal colors aren't supported or desired:
+| Variable | Effect |
+| --- | --- |
+| `FORCE_COLOR` | Set to a non-empty value other than `0` to force colors on; `FORCE_COLOR=0` forces them off |
+| `CLICOLOR_FORCE` | Set to a non-empty value other than `0` to force colors on |
+| `NO_COLOR` | Set to a non-empty value to disable colors |
+| `CLICOLOR` | Set to `0` to disable colors |
+| `TERM` | `dumb` disables colors |
+
+> [!NOTE]
+> String rendering (`to_string`, `Display`) is deterministic and never consults
+> the environment or a terminal — only `print`, `println` and `write_to` do.
+> Formatted output is identical whether it is produced on a CI runner or in an
+> interactive terminal.
+
+### Stripping ANSI codes
+
+```rust
+use pretty_console::{strip_ansi, Styled};
+
+let styled = "hello".red().bold();
+assert_eq!(strip_ansi(&styled.to_string()), "hello");
+```
+
+### The `no-color` feature
+
+For environments where styling is never wanted:
 
 ```toml
 [dependencies]
-pretty_console = { version = "0.1.0", features = ["no-color"] }
+pretty-console = { version = "1.1.0", features = ["no-color"] }
 ```
 
-With the `no-color` feature, all ANSI escape codes are omitted, and text is printed as-is.
+All ANSI generation is compiled out; every method still exists and behaves as a pass-through.
+
+## Comparison
+
+| Feature | pretty_console | termcolor | colored |
+| --- | --- | --- | --- |
+| Fluent API | ✅ | ❌ | ✅ |
+| True color | ✅ | ✅ | ✅ |
+| Zero dependencies | ✅ | ❌ | ✅ |
+| Reusable styles | ✅ | ✅ | ❌ |
+| Runtime color detection | ✅ | ✅ | ✅ |
+| 100% test coverage | ✅ | ❌ | ❌ |
 
 ## Performance
 
-The builder pattern uses zero-cost abstractions - all styling is computed at compile time where possible. The ANSI code generation is optimized and only occurs when actually printing.
+Styling is a builder over plain `String` formatting: there are no locks, no regexes and no dynamic dispatch in the render path. ANSI codes are only produced when a style is actually set, and empty styles render as the bare text.
 
-## Platform Support
+## Platform support
 
-- **Unix-like systems**: Full support via ANSI escape codes
-- **Windows 10+**: Full support via virtual terminal sequences
-- **Older Windows**: Limited support (requires enabling virtual terminal)
+- **Unix-like systems**: full support via ANSI escape codes
+- **Windows 10+**: full support through virtual terminal sequences
 
-For best Windows compatibility, ensure your terminal supports ANSI escape codes or use Windows 10+.
-
-## Alternatives Comparison
-
-| Feature | pretty_console | termcolor | colored |
-|---------|---------------|-----------|---------|
-| Fluent API | ✅ | ❌ | ✅ |
-| True Color | ✅ | ✅ | ✅ |
-| Zero-Cost | ✅ | ✅ | ❌ |
-| Reusable Styles | ✅ | ❌ | ❌ |
-| Attribute Combos | ✅ | ✅ | ✅ |
-| No Dependencies | ✅ | ❌ | ✅ |
-
-## License
-
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-
-## Contribution
-
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you shall be dual licensed as above, without any additional terms or conditions.
-
----
-
-**Happy styling!** 🎨
+[`Styled`]: https://docs.rs/pretty_console/latest/pretty_console/trait.Styled.html
+[`ColorChoice`]: https://docs.rs/pretty_console/latest/pretty_console/enum.ColorChoice.html
