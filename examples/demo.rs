@@ -1,3 +1,5 @@
+//! A tour of the basics: colors, backgrounds, attributes and reusable styles.
+
 use pretty_console::Console;
 
 fn main() {
