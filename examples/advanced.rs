@@ -1,11 +1,10 @@
-use pretty_console::{Attribute, Console, Style};
+//! Advanced usage: predefined styles, merging, hex colors and the `Styled` trait.
+
+use pretty_console::{Attribute, Color, Console, Style, Styled};
 
 fn main() {
     // Creating a predefined style
-    let heading_style = Style::new()
-        .fg(pretty_console::Color::BRIGHT_BLUE)
-        .bold()
-        .underline();
+    let heading_style = Style::new().fg(Color::BRIGHT_BLUE).bold().underline();
 
     // Using the style with different text
     Console::new_with_style("Chapter 1: Introduction", heading_style.clone()).println();
@@ -25,6 +24,22 @@ fn main() {
     console = console.bold();
     console.println();
 
+    // Merging styles
+    let base = Style::new().fg(Color::RED);
+    let emphasis = Style::new().bold().underline();
+    Console::new_with_style("Merged style", base.merge(emphasis)).println();
+
+    // Hex and indexed colors
+    Console::new("True color from hex")
+        .fg(Color::hex(0x7C_4D_FF))
+        .println();
+    Console::new("Indexed palette color")
+        .fg(Color::indexed(202))
+        .println();
+
+    // The Styled extension trait on literals
+    println!("{}", "painted directly".green().on_black());
+
     // Using in format strings
     let name = "Alice";
     let message = format!(
@@ -32,5 +47,5 @@ fn main() {
         name,
         Console::new("important").red().bold()
     );
-    println!("{}", message);
+    println!("{message}");
 }
