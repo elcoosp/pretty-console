@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="docs/logo.png" alt="pretty-console Logo" width="300"/>
   <p>
     <strong>A fluent, zero-cost API for styling terminal text with colors and attributes, written in Rust.</strong><br/>
     Zero runtime dependencies, a chainable builder, reusable styles, 256-color and true-color support, log-level helpers and runtime color detection — everything compiles down to plain ANSI escape codes that work in any modern terminal.
