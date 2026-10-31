@@ -1,7 +1,8 @@
 [package]
 name = "pretty-console"
-version = "1.0.3"
+version = "1.1.0"
 edition = "2024"
+rust-version = "1.85"
 description = "A fluent, zero-cost API for styling terminal text with colors and attributes"
 repository = "https://github.com/elcoosp/pretty-console"
 readme = "README.md"
@@ -17,8 +18,21 @@ path = "examples/demo.rs"
 name = "advanced"
 path = "examples/advanced.rs"
 
+[[example]]
+name = "levels"
+path = "examples/levels.rs"
+
 [features]
-no-color= []
+no-color = []
+
+[dependencies]
 
 [dev-dependencies]
-insta = { version = "1.43.2", features = ["yaml", "glob"] }
+insta = { version = "1.49.0", features = ["yaml"] }
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = "warn"
