@@ -1,14 +1,14 @@
 [package]
 name = "pretty-console"
-version = "1.1.0"
+version = "2.0.0"
 edition = "2024"
 rust-version = "1.85"
-description = "A fluent, zero-cost API for styling terminal text with colors and attributes"
+description = "A fluent, zero-cost API for styling terminal text: colors, attributes, gradients, panels, hyperlinks and ANSI-aware text tools"
 repository = "https://github.com/elcoosp/pretty-console"
 readme = "README.md"
 license = "MIT"
-keywords = ["color", "style", "ansi", "console", "formatting"]
-categories = ["text-processing"]
+keywords = ["color", "style", "ansi", "console", "formatting", "terminal", "tui"]
+categories = ["text-processing", "command-line-interface"]
 
 [[example]]
 name = "demo"
@@ -22,13 +22,21 @@ path = "examples/advanced.rs"
 name = "levels"
 path = "examples/levels.rs"
 
+[[example]]
+name = "showcase"
+path = "examples/showcase.rs"
+
+[[example]]
+name = "bench"
+path = "examples/bench.rs"
+
 [features]
 no-color = []
 
-[dependencies]
-
 [dev-dependencies]
-insta = { version = "1.49.0", features = ["yaml"] }
+owo-colors = "4.4.0"
+colored = "3.0.4"
+yansi = "1.0.1"
 
 [lints.rust]
 missing_docs = "warn"
