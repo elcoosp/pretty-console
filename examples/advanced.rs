@@ -1,51 +1,56 @@
-//! Advanced usage: predefined styles, merging, hex colors and the `Styled` trait.
+//! Advanced usage: predefined styles, merging, hex colors, hyperlinks and
+//! conditional styling.
 
-use pretty_console::{Attribute, Color, Console, Style, Styled};
+use pretty_console::{Attribute, Color, Span, Style, paint, style};
 
 fn main() {
     // Creating a predefined style
     let heading_style = Style::new().fg(Color::BRIGHT_BLUE).bold().underline();
 
     // Using the style with different text
-    Console::new_with_style("Chapter 1: Introduction", heading_style.clone()).println();
-    Console::new_with_style("Chapter 2: Getting Started", heading_style).println();
+    heading_style.paint("Chapter 1: Introduction").println();
+    heading_style.paint("Chapter 2: Getting Started").println();
 
     // Complex styling
-    Console::new("Warning!")
+    Span::new("Warning!")
         .yellow()
         .blink()
         .attr(Attribute::Reverse)
         .println();
 
     // Building step by step
-    let mut console = Console::new("Step by step");
-    console = console.red();
-    console = console.on_white();
-    console = console.bold();
-    console.println();
+    let mut span = Span::new("Step by step");
+    span.set_style(span.style().red().on_white().bold());
+    span.println();
 
-    // Merging styles
+    // Merging styles: colors of the second win, attribute sets union.
     let base = Style::new().fg(Color::RED);
     let emphasis = Style::new().bold().underline();
-    Console::new_with_style("Merged style", base.merge(emphasis)).println();
+    Span::new_with_style("Merged style", base.merge(emphasis)).println();
 
-    // Hex and indexed colors
-    Console::new("True color from hex")
-        .fg(Color::hex(0x7C_4D_FF))
+    // Hex colors: packed values...
+    Span::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
+    // ...and parsed from strings (handy for config files).
+    let theme_color = "#22d3ee";
+    match Color::from_hex_str(theme_color) {
+        Ok(color) => Span::new("Theme accent").fg(color).println(),
+        Err(err) => eprintln!("bad color: {err}"),
+    }
+
+    // Hyperlinks (OSC 8): clickable in supporting terminals.
+    Span::new("pretty-console on GitHub")
+        .blue()
+        .underline()
+        .link("https://github.com/elcoosp/pretty-console")
         .println();
-    Console::new("Indexed palette color")
-        .fg(Color::indexed(202))
+
+    // Conditional styling keeps chains flat.
+    let verbose = std::env::var("VERBOSE").is_ok();
+    Span::new("details")
+        .when(verbose, |s| s.dim().italic())
         .println();
 
-    // The Styled extension trait on literals
-    println!("{}", "painted directly".green().on_black());
-
-    // Using in format strings
-    let name = "Alice";
-    let message = format!(
-        "Hello {}, this is {}",
-        name,
-        Console::new("important").red().bold()
-    );
-    println!("{message}");
+    // The macros: one-shot styling without hand-written format strings.
+    paint!(green bold, "{} files synced", 42).println();
+    style!(dim).paint("(end of demo)").println();
 }
