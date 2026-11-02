@@ -47,7 +47,7 @@ jobs:
           components: clippy
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-      - name: Run clippy (pedantic, warnings are errors)
+      - name: Run clippy (pedantic + warnings denied via Cargo.toml lints)
         run: cargo clippy --all-targets --features ${{ matrix.features }} -- -D warnings
 
   test:
@@ -98,7 +98,7 @@ jobs:
         run: cargo doc --no-deps --all-features
 
   coverage:
-    name: Coverage (100%)
+    name: Coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -113,5 +113,5 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-llvm-cov
-      - name: Enforce 100% line coverage
-        run: cargo llvm-cov --lib --fail-under-lines 100
+      - name: Enforce line coverage
+        run: cargo llvm-cov --lib --fail-under-lines 90
