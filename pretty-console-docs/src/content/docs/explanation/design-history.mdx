@@ -1,0 +1,75 @@
+---
+title: How v2 came to be
+description: The v1 audit findings, the decisions that shaped the 2.0 rewrite, and the deliberate non-goals.
+type: explanation
+---
+
+Version 2.0 was not an accumulation of features but a redesign driven by an
+audit. This page summarizes that record — the findings, the decisions and the
+non-goals — as the project itself documented it in `docs/DESIGN.md` and
+`CHANGELOG.md`. Statements below are sourced from those documents; where the
+*why* is unrecorded, the page presents only what the code does.
+
+## What v1 cost
+
+The performance audit of 1.1.0 found six structural costs. Each rendering of
+a styled value allocated repeatedly: a `Vec<Attribute>` cloned on every
+builder call, `String`s returned per color code, a `Vec<String>` joined into
+the start sequence, and a `format!` plus text clone in `render`. Printing
+re-read the environment variables on every line. And `Style` was neither
+`Copy` nor `const`-constructible, so no static style tables were possible.
+
+## What v1 lacked
+
+The DX audit, comparing against `owo-colors`, `yansi`, `colored`, `anstyle`
+and `termcolor`, found the gaps that became v2's feature list: no
+multi-segment lines, no hyperlinks, no gradients, no capability detection or
+degradation, no hex-string parsing, no ANSI-aware text toolkit, no
+conditional styling, no macros, no panels, no contrast helper, no fallible
+IO, width computed from `chars()` instead of terminal columns, and duplicate
+attributes emitting duplicate codes. One finding was a naming one: `Console`
+was not a console but a styled string.
+
+## The core model decisions
+
+The redesign landed on a small set of interlocking decisions:
+
+- `Style` and `Effects` became `Copy`, `const`-constructible values; the
+  attribute list became a `u16` bitset with canonical emission order and
+  idempotent adds.
+- `Span` became the primary type — text plus style plus optional OSC 8 link —
+  with `Display` writing SGR codes straight into the formatter.
+- `Line` became the composition primitive, with styling methods that apply to
+  the last pushed span so chains read left to right.
+- The deterministic-rendering philosophy of v1 was kept and made explicit:
+  string rendering never consults the environment; only printing does.
+
+## Compatibility strategy
+
+The MSRV stayed at 1.85 (edition 2024), `unsafe` stayed forbidden, and the
+crate kept zero runtime dependencies. `Console` remains a type alias of
+`Span`, so most 1.x code keeps compiling. Three breaking changes were accepted
+and documented: canonical, deduplicated attribute codes; `Style::attributes()`
+returning the `Effects` bitset instead of `&[Attribute]`; and the `insta`
+snapshot dev-dependency replaced by exact-string contract tests. The
+[migration guide](/guides/migrate-from-v1/) turns these into steps.
+
+## Non-goals
+
+The design document names what v2 deliberately does not do:
+
+- Window-size queries, cursor control and alternate screens — the territory
+  of terminal-control crates.
+- Full Unicode width parity with the `unicode-width` crate — the built-in
+  table covers the common CJK, emoji and combining ranges, documented as an
+  approximation in service of the zero-dependency guarantee.
+
+These boundaries are stable design positions, not missing features; a PR
+introducing either would be reversing a recorded decision rather than filling
+a gap.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="The zero-cost design" description="How the audit findings translated into the implementation." href="/explanation/zero-cost-design/" />
