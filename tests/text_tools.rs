@@ -36,6 +36,18 @@ fn strip_styled_output() {
 }
 
 #[test]
+fn osc8_close_after_reset_is_parsed() {
+    // A rendered hyperlinked `Span` ends with an SGR reset immediately
+    // followed by the OSC 8 closer; the scanner must keep both intact.
+    let styled = "\x1b]8;;u\x1b\\\x1b[1mx\x1b[0m\x1b]8;;\x1b\\";
+    assert_eq!(strip_ansi(styled), "x");
+    assert_eq!(visible_width(styled), 1);
+    // Robustness: a bare ESC immediately before another escape ends its own
+    // sequence so the following one still parses.
+    assert_eq!(strip_ansi("x\x1b\x1b[0my"), "xy");
+}
+
+#[test]
 fn char_width_rules() {
     assert_eq!(visible_width(""), 0);
     assert_eq!(visible_width("abc"), 3);
