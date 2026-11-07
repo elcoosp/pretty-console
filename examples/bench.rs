@@ -13,10 +13,14 @@
 use std::fmt::Write as _;
 use std::time::Instant;
 
-use pretty_console::Span;
+use pretty_console::{Line, Span, WrapMode, wrap};
 
 const ITERATIONS: usize = 200_000;
+const WRAP_ITERATIONS: usize = 100_000;
 const STRIP_INPUT: &str = "the quick brown fox jumps over \x1b[1;38;5;9mthe lazy dog\x1b[0m again and again \x1b[38;2;10;20;30mand over\x1b[0m";
+const WRAP_PLAIN: &str = "The quick brown fox jumps over the lazy dog and keeps running through the green meadow beyond the hills";
+const WRAP_STYLED: &str = "\x1b[1;38;5;9mThe quick brown fox\x1b[0m jumps over \x1b[38;2;10;20;30mthe lazy dog\x1b[0m and keeps running on";
+const WRAP_CJK: &str = "敏捷的棕色狐狸跳过懒惰的狗然后继续奔跑穿过绿色的草地和远处的山丘";
 
 fn bench(name: &str, iterations: usize, mut f: impl FnMut(usize)) -> f64 {
     // Warmup.
@@ -79,6 +83,17 @@ fn owo_display(i: usize) -> String {
     buf
 }
 
+fn line_to_wrap() -> Line {
+    Line::new()
+        .push("total ")
+        .push("12345 items")
+        .red()
+        .bold()
+        .push(" processed in ")
+        .push("4.21s")
+        .green()
+}
+
 fn main() {
     println!("Rendering a styled string 3 attributes deep, {ITERATIONS} iterations:\n");
 
@@ -123,4 +138,36 @@ fn main() {
         "  strip_ansi  throughput {:>8.1} MB/s",
         bytes_per_sec / 1_048_576.0
     );
+
+    println!("\nANSI-aware word wrapping (wrap), {WRAP_ITERATIONS} iterations:\n");
+
+    let wrap_plain = bench("wrap  plain ASCII", WRAP_ITERATIONS, |_| {
+        std::hint::black_box(wrap(WRAP_PLAIN, 20, WrapMode::Word));
+    });
+    let wrap_styled = bench("wrap  styled (SGR codes)", WRAP_ITERATIONS, |_| {
+        std::hint::black_box(wrap(WRAP_STYLED, 20, WrapMode::Word));
+    });
+    let wrap_cjk = bench("wrap  CJK wide chars", WRAP_ITERATIONS, |_| {
+        std::hint::black_box(wrap(WRAP_CJK, 20, WrapMode::Word));
+    });
+    let wrap_char = bench("wrap  char mode", WRAP_ITERATIONS, |_| {
+        std::hint::black_box(wrap(WRAP_PLAIN, 20, WrapMode::Char));
+    });
+    let line_wrap = bench("Line::wrap  multi-span", WRAP_ITERATIONS, |_| {
+        std::hint::black_box(line_to_wrap().wrap(16, WrapMode::Word));
+    });
+
+    println!("\n  wrap throughput:");
+    for (name, input, ops) in [
+        ("plain", WRAP_PLAIN, wrap_plain),
+        ("styled", WRAP_STYLED, wrap_styled),
+        ("cjk", WRAP_CJK, wrap_cjk),
+        ("char-mode", WRAP_PLAIN, wrap_char),
+    ] {
+        println!(
+            "    {name:<10} {:>8.1} MB/s",
+            input.len() as f64 * ops / 1_048_576.0
+        );
+    }
+    let _ = line_wrap;
 }
