@@ -60,6 +60,19 @@ notes for the (few) intentional breaking changes.
 - Rewrite README and add git-cliff generated changelog
 
 ### Features
+- **api:** ANSI-aware word wrapping across the stack — `wrap(input, width,
+  mode)` with `WrapMode::Word` / `WrapMode::Char`: escape sequences stay
+  zero-width, wide (CJK) characters count two columns and are break points,
+  open SGR styles and OSC 8 hyperlinks are closed at each line break and
+  re-opened on the next one, newlines are hard breaks
+- **api:** `Span::wrap` splits a span into fragments that keep the style and
+  hyperlink; `Line::wrap` reflows a composed line into rows preserving every
+  span's style
+- **api:** `Panel::soft_wrap` reflows over-wide lines inside fixed-width
+  panels instead of truncating them with an ellipsis
+- **fix:** the escape scanner now parses a bare `ESC` immediately followed by
+  another escape as two sequences, so `strip_ansi` / `visible_width` /
+  `truncate` handle adjacent escape sequences correctly
 - **api:** Runtime color choice, Styled trait, ANSI stripping and level helpers
 ## [1.0.3] - 2025-11-02
 ### Bug Fixes
