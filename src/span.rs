@@ -297,6 +297,39 @@ impl Span {
         if condition { f(self) } else { self }
     }
 
+    /// Splits the span into fragments of at most `max_width` visible columns,
+    /// keeping the style and hyperlink on every fragment.
+    ///
+    /// Because each fragment is a full [`Span`], rendering re-emits the style
+    /// per line and no ANSI state leaks across line breaks. Uses the same
+    /// CJK-aware, escape-aware packing as [`wrap`](crate::wrap); see
+    /// [`WrapMode`](crate::WrapMode) for the two strategies.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(not(feature = "no-color"))]
+    /// # {
+    /// use pretty_console::{Span, WrapMode};
+    ///
+    /// let fragments = Span::new("hello wonderful world").red().wrap(10, WrapMode::Word);
+    /// assert_eq!(fragments.len(), 3);
+    /// assert_eq!(fragments[0].text(), "hello");
+    /// assert_eq!(fragments[0].to_string(), "\x1b[38;5;1mhello\x1b[0m");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn wrap(&self, max_width: usize, mode: crate::text::WrapMode) -> Vec<Span> {
+        crate::text::wrap_cells(&self.text, max_width, mode)
+            .into_iter()
+            .map(|text| Span {
+                text,
+                style: self.style,
+                link: self.link.clone(),
+            })
+            .collect()
+    }
+
     /// Black foreground.
     #[must_use]
     pub fn black(self) -> Self {
