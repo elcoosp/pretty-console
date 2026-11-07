@@ -1,0 +1,81 @@
+---
+title: The zero-cost design
+description: How pretty-console renders styled output without heap allocation, intermediate strings or repeated syscalls.
+type: explanation
+---
+
+pretty-console describes itself as *zero-cost*. This page explains what that
+means concretely — where the costs went, and what remains. The decisions
+recorded here come from the project's own design document
+(`docs/DESIGN.md` in the repository) and from the code itself.
+
+## What zero-cost means here
+
+The crate never allocates while *rendering* a styled value into a formatter,
+and it never re-reads the environment while printing. Allocation still
+happens where it is inherent: `Span` owns a `String`, and a `Line` owns its
+`Vec<Span>`. What is gone is the hidden tax most styling libraries pay per
+rendered value.
+
+## Styles are values, not builders with state
+
+`Style` is a small `Copy` struct — an optional foreground, an optional
+background, an attribute bitset. Building, merging and cloning a style
+compiles to register moves. A v1-style `Vec<Attribute>` was the audit's
+first finding: every builder call cloned a heap list. In v2 the whole style
+can live in a `const`:
+
+```rust
+use pretty_console::{Color, Style};
+
+const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
+```
+
+## The Effects bitset
+
+Attributes live in a `u16` bitset, one bit per attribute. Consequences that
+matter beyond memory:
+
+- `.bold().bold()` emits one code, not two — duplicates are structurally
+  impossible.
+- Emission order is fixed by bit order (bold → strikethrough), not by call
+  order, which makes output contract-testable.
+- `merge` is a single `or`.
+
+## Writing codes straight into the formatter
+
+`Display` for `Span` writes the SGR start sequence, the text, and the reset
+directly into the destination `fmt::Formatter`. There is no intermediate
+`String` in `write!`/`print!` paths, and the decimal digits of SGR parameters
+are written without going through `format!`. The audit counted at least five
+allocations per render in v1; the v2 render path has none.
+
+## One environment decision, cached
+
+Deciding whether colors are enabled inspects several environment variables
+and stdout. Doing that per printed line costs syscalls. v2 performs the
+`Auto` decision once and caches it in an atomic; `set_color_choice`
+invalidates the cache. After the first print, the hot path performs no
+environment access at all.
+
+## Visible width in a single pass
+
+`truncate` and `pad` measure and rewrite in one pass over the input, with a
+byte scanner for `strip_ansi` that searches for the next `ESC` and copies
+slices between them. The width table itself covers the common CJK, emoji and
+combining ranges without pulling in the `unicode-width` crate — a documented
+trade-off between exactness and the zero-dependency guarantee.
+
+## What this does not cover
+
+The benchmark numbers in the repository README were measured on a CI-class
+Linux VM; reproduce them with `cargo run --release --example bench` before
+treating them as your own numbers. And "zero-cost" is about allocation and
+syscalls — terminal rendering itself, and the width approximation above,
+remain practical approximations of what any terminal does.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Deterministic rendering" description="The other half of the output contract." href="/explanation/rendering-model/" />
