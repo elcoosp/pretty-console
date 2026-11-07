@@ -1,0 +1,105 @@
+---
+title: Add gradients, panels and hyperlinks
+description: Paint gradient and rainbow text, frame output in a rounded panel, and emit OSC 8 hyperlinks.
+type: how-to
+---
+
+This guide shows how to produce the decorative output forms: per-character
+gradients, rainbows, rounded panels with inlaid titles, and clickable
+hyperlinks. It assumes you can print a styled [`Span`](/reference/span/).
+
+## Fade a gradient across text
+
+`gradient` interpolates from one color to another, one character at a time,
+and returns a [`Line`](/reference/line/):
+
+```rust
+use pretty_console::{gradient, Color};
+
+gradient("sunrise fade", Color::hex(0xFF3E6C), Color::hex(0x4DC4FF)).println();
+```
+
+`gradient_bg` does the same for backgrounds. Both honor
+[`ColorChoice`](/reference/color-control/) when printing, and both can be
+pre-degraded with `render_with` like any line.
+
+## Paint a rainbow
+
+`rainbow` cycles the full hue wheel across the text's characters:
+
+```rust
+use pretty_console::rainbow;
+
+rainbow("the full spectrum, one hue per character").println();
+```
+
+`rainbow_bg` paints the same spectrum as backgrounds. Whitespace is colored
+too — the spectrum covers every character, not every visible glyph — and each
+character is its own span, so the resulting line's `spans()` has one entry per
+character.
+
+## Build a titled panel
+
+`Panel` draws a rounded box with an optional title inlaid into the top border.
+Content lines accept a [`Line`](/reference/line/), a
+[`Span`](/reference/span/), or a plain string:
+
+```rust
+use pretty_console::{Line, Panel, Span, Style, Styled};
+
+Panel::new()
+    .title("Summary")
+    .border(Style::new().bright_black())
+    .line(Line::new().push("passed: ").dim().push("128").green().bold())
+    .line("skipped: 3".dim())
+    .line(Span::new("failed: 0").green())
+    .println();
+```
+
+The inner width fits the widest line plus padding by default; the title can
+widen the box. Only the border characters and the title divider take the
+border style — content keeps its own colors.
+
+## Fix the panel width
+
+`width` sets the inner content width explicitly. It acts as a floor for the
+title and truncates over-wide lines with an ellipsis:
+
+```rust
+use pretty_console::Panel;
+
+let panel = Panel::new()
+    .title("Build report")
+    .width(40)
+    .line("a very long status line that will be cut");
+panel.println();
+```
+
+When a line exceeds the fixed width, `render` cuts it at the visible-width
+budget and appends `…`, so the box never breaks its own border. Drop the
+`.width(40)` call to let the box size itself.
+
+## Make text clickable with OSC 8
+
+`link` attaches a hyperlink. Supporting terminals make the text clickable;
+others ignore the sequence:
+
+```rust
+use pretty_console::{Span, Styled};
+
+Span::new("pretty-console on GitHub")
+    .blue()
+    .underline()
+    .link("https://github.com/elcoosp/pretty-console")
+    .println();
+```
+
+The link wraps the styled text and is removed by `unlink()`; `url()` returns
+it for inspection. Links are emitted only when printing with colors enabled —
+with colors off, or under the `no-color` feature, the plain text prints.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Panel" description="Every builder method, default and the width formula." href="/reference/panel/" />
