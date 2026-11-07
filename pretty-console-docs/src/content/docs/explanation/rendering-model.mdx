@@ -1,0 +1,79 @@
+---
+title: Deterministic rendering
+description: Why to_string and Display never consult the environment while the print family does — and what canonical ordering buys you.
+type: explanation
+---
+
+pretty-console draws a sharp line between two ways output leaves your
+program. Understanding it predicts what your tests, logs and terminals will
+show. This page is an observation of documented and tested behavior in
+`src/lib.rs`, `src/span.rs` and `src/style.rs`.
+
+## Two paths, two contracts
+
+| Path | Members | Environment |
+| --- | --- | --- |
+| String rendering | `render`, `render_with`, `to_string`, `Display` | Never consulted |
+| Printing | `print`, `println`, `eprint`, `eprintln`, `try_*`, `write_to` | Honors `ColorChoice` |
+
+The same [`Span`](/reference/span/) renders identically on a CI runner and in
+an interactive terminal. Printing, on the other hand, decides at call time
+whether to write the rendered string or the plain text, based on the global
+[`ColorChoice`](/reference/color-control/).
+
+## What determinism buys you
+
+- Exact-output tests (`assert_eq!` on `to_string()`) are stable across
+  machines, shells and CI — the project itself relies on this in its contract
+  tests.
+- Logs written to files keep their escapes (or keep none, if you render
+  explicitly) regardless of where the program ran.
+- `format!` never changes its mind between environments.
+
+The cost is that `to_string()` alone cannot respect `NO_COLOR` — that is a
+printing concern by design, and the boundary is deliberate.
+
+## The print family's environment contract
+
+When a print method runs, it checks whether colors are enabled. If yes, the
+rendered string goes to the stream; if no, the plain text does — the same
+bytes a `strip_ansi` of the rendered string would produce, with no leftover
+escape codes and no link sequences. This is why
+[`Span::link`](/reference/span/) needs no special handling in plain mode:
+the plain branch never emits it.
+
+## Canonical ordering and idempotence
+
+Within one ANSI sequence, attributes are emitted first — in the fixed order
+bold, dim, italic, underline, blink, reverse, hidden, strikethrough — then
+the foreground color, then the background color. Two properties follow:
+
+1. The same style always produces the same byte sequence, whatever order the
+   builder methods were called in.
+2. Repeating an attribute changes nothing; the bitset cannot hold a duplicate.
+
+Both properties are covered by exact-string contract tests in the repository
+(`tests/contract.rs`), and both are v2 changes — v1 emitted attributes in
+insertion order with possible duplicates.
+
+## Plain styles emit nothing
+
+A style with no colors and no attributes is *plain*, and a plain span renders
+as its bare text: no start sequence, no reset. The reset is only written when
+a start sequence was. So `Span::new("hi").to_string()` is exactly `"hi"` —
+relevant when you conditionally style and do not want empty `ESC [m` noise.
+
+## The no-color feature
+
+The compile-time `no-color` feature removes ANSI generation from the binary
+entirely. Every method still exists and behaves as a pass-through:
+`is_color_enabled()` returns `false`, links are suppressed, and the text
+tools, `Panel` and level helpers keep working. The distinction from
+`ColorChoice::Never` is binary size and the impossibility of re-enabling at
+runtime.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Span" description="The rendering and printing members this page discusses." href="/reference/span/" />
