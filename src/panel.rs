@@ -6,7 +6,7 @@ use std::io;
 use crate::line::Line;
 use crate::span::{Span, print_honoring_choice, println_honoring_choice};
 use crate::style::Style;
-use crate::text::{Align, pad, strip_ansi, truncate, visible_width};
+use crate::text::{Align, WrapMode, pad, strip_ansi, truncate, visible_width};
 
 /// A rounded, bordered box containing styled lines and an optional inlaid
 /// title.
@@ -14,7 +14,8 @@ use crate::text::{Align, pad, strip_ansi, truncate, visible_width};
 /// The border and title divider dashes are styled with [`border`](Panel::border);
 /// content spans keep their own styles. Inner width is derived from the widest
 /// line unless overridden with [`width`](Panel::width) (an explicit width is a
-/// floor for the title and truncates over-wide lines with an ellipsis).
+/// floor for the title and truncates over-wide lines with an ellipsis, or
+/// reflows them when [`soft_wrap`](Panel::soft_wrap) is enabled).
 ///
 /// # Examples
 ///
@@ -34,6 +35,7 @@ pub struct Panel {
     width: Option<usize>,
     padding: usize,
     border: Style,
+    soft_wrap: bool,
 }
 
 impl Default for Panel {
@@ -52,6 +54,7 @@ impl Panel {
             width: None,
             padding: 1,
             border: Style::new(),
+            soft_wrap: false,
         }
     }
 
@@ -95,6 +98,30 @@ impl Panel {
     #[must_use]
     pub fn border(mut self, style: Style) -> Self {
         self.border = style;
+        self
+    }
+
+    /// Reflows over-wide content lines instead of truncating them when a
+    /// fixed [`width`](Panel::width) is set.
+    ///
+    /// With `soft_wrap(false)` (the default) a line wider than the panel body
+    /// is truncated with an ellipsis. With `soft_wrap(true)` it is wrapped
+    /// into several rows that keep their spans' styles, matching the
+    /// [`Line::wrap`](Line::wrap) semantics.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use pretty_console::Panel;
+    ///
+    /// let panel = Panel::new().width(8).soft_wrap(true).line("one two three four");
+    /// let plain = panel.render_plain();
+    /// assert!(!plain.contains('…'));
+    /// assert_eq!(plain.lines().count(), 5); // top + 3 reflowed rows + bottom
+    /// ```
+    #[must_use]
+    pub const fn soft_wrap(mut self, yes: bool) -> Self {
+        self.soft_wrap = yes;
         self
     }
 
@@ -146,23 +173,31 @@ impl Panel {
         out.push_str(&self.border.paint("╮").to_string());
         out.push('\n');
 
-        // Content lines.
+        // Content lines. A fixed width with soft wrapping reflows over-wide
+        // lines into several rows before padding.
         let side = self.border.paint("│").to_string();
         let padding = " ".repeat(self.padding);
         for line in &self.lines {
-            let rendered = line.render();
-            let rendered = if fixed {
-                truncate(&rendered, body_width, "…")
+            let rows: Vec<Line> = if fixed && self.soft_wrap && line.visible_width() > body_width {
+                line.wrap(body_width, WrapMode::Word)
             } else {
-                rendered
+                vec![line.clone()]
             };
-            let body = pad(&rendered, body_width, Align::Left, ' ');
-            out.push_str(&side);
-            out.push_str(&padding);
-            out.push_str(&body);
-            out.push_str(&padding);
-            out.push_str(&side);
-            out.push('\n');
+            for row in &rows {
+                let rendered = row.render();
+                let rendered = if fixed {
+                    truncate(&rendered, body_width, "…")
+                } else {
+                    rendered
+                };
+                let body = pad(&rendered, body_width, Align::Left, ' ');
+                out.push_str(&side);
+                out.push_str(&padding);
+                out.push_str(&body);
+                out.push_str(&padding);
+                out.push_str(&side);
+                out.push('\n');
+            }
         }
 
         // Bottom border.
