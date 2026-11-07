@@ -1,0 +1,95 @@
+---
+title: Migrate from 1.x
+description: Move a pretty-console 1.x codebase to 2.0 — what keeps compiling, what breaks, and what to update.
+type: how-to
+---
+
+This guide lists the concrete steps for upgrading from pretty-console 1.x to
+2.0, with the exact breaking changes and their fixes. For the reasoning behind
+the redesign, see [How v2 came to be](/explanation/design-history/).
+
+## Bump the dependency
+
+```sh
+cargo add pretty-console@2.0.0
+```
+
+2.0 needs Rust 1.85 or newer (edition 2024). Check your `rust-toolchain.toml`
+and CI matrix before continuing.
+
+## Keep or rename Console
+
+`Console` still exists as a type alias of [`Span`](/reference/span/), so
+existing `Console::new("...").red().println()` code keeps compiling. New code
+should spell the type `Span`:
+
+```rust
+use pretty_console::Span;
+
+// Before: Console::new("hi").red();
+// Now:
+let span = Span::new("hi").red();
+```
+
+`Console::new_with_style` also keeps working; the Span-native spellings are
+`Span::new_with_style(text, style)` and `Style::paint(text)`.
+
+## Fix exact-output tests
+
+Attribute codes are now emitted in **canonical order** (bold → dim → italic →
+underline → blink → reverse → hidden → strikethrough), followed by the
+foreground color, then the background color — not insertion order — and
+duplicates are removed. If you snapshot exact escape strings, update them:
+
+```rust
+// Before (1.x, insertion order, duplicates possible):
+//   bold().bold() could emit "1;1"
+// Now: one code, canonical position:
+assert_eq!(
+    Span::new("hi").bold().bold().to_string(),
+    "\x1b[1mhi\x1b[0m"
+);
+```
+
+The `insta` snapshot dev-dependency is gone; the project itself now asserts
+exact strings in contract tests. If you depended on `insta` only for
+pretty-console output, plain `assert_eq!` on `to_string()` is the supported
+replacement.
+
+## Update attributes() consumers
+
+`Style::attributes()` used to hand out `&[Attribute]`. It now returns an
+`Effects` bitset — a `Copy` value with `has`, `contains`, `insert`, `remove`,
+`union` and an `attributes()` iterator:
+
+```rust
+use pretty_console::{Attribute, Style, Styled};
+
+let style = Style::new().bold().underline();
+let effects = style.attributes();
+assert!(effects.has(Attribute::Bold));
+assert_eq!(effects.attributes().count(), 2);
+```
+
+Code that matched on slice contents should query the bitset with
+`has(Attribute::…)` or `contains(Effects::…)` instead.
+
+## Adopt the Span-native spellings
+
+The following renames are mechanical:
+
+| 1.x | 2.0 |
+| --- | --- |
+| `Console` | `Span` (alias kept) |
+| `Console::new_with_style` | `Span::new_with_style` / `Style::paint` |
+| `&[Attribute]` from `attributes()` | `Effects` bitset |
+| insertion-order attribute codes | canonical order, deduplicated |
+
+Everything else — level helpers, `banner`, the `Styled` trait — kept its v1
+signature.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="How v2 came to be" description="The audit findings and decisions behind the redesign." href="/explanation/design-history/" />
