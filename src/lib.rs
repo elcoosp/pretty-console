@@ -23,7 +23,11 @@
 //!   [`supports_color_level`] and degrade truecolor output via
 //!   [`Span::render_with`](Span::render_with)
 //! - **ANSI-aware text tools**: [`strip_ansi`], [`visible_width`],
-//!   [`truncate`], [`pad`]
+//!   [`truncate`], [`pad`], [`wrap`]
+//! - **Word wrapping**: [`wrap`], [`Span::wrap`](Span::wrap) and
+//!   [`Line::wrap`](Line::wrap) reflow styled, CJK-aware text without
+//!   leaking ANSI state across lines; [`Panel::soft_wrap`](Panel::soft_wrap)
+//!   reflows fixed-width panels
 //! - **Runtime color control**: honor `NO_COLOR`, `CLICOLOR`,
 //!   `CLICOLOR_FORCE`, `FORCE_COLOR`, `TERM=dumb` and `COLORTERM` via
 //!   [`ColorChoice`], with the detection result cached
@@ -104,4 +108,4 @@ pub use line::Line;
 pub use panel::Panel;
 pub use span::{Console, Span, Styled};
 pub use style::Style;
-pub use text::{Align, char_width, pad, strip_ansi, truncate, visible_width};
+pub use text::{Align, WrapMode, char_width, pad, strip_ansi, truncate, visible_width, wrap};
