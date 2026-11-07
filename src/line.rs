@@ -115,6 +115,62 @@ impl Line {
         if condition { f(self) } else { self }
     }
 
+    /// Reflows the line into rows of at most `max_width` visible columns,
+    /// preserving each span's style and hyperlink.
+    ///
+    /// Spans are split at column boundaries (see [`WrapMode`](crate::WrapMode)
+    /// for the two strategies); a row break inside a span produces adjacent
+    /// fragments that carry the original style, so rendering re-opens the
+    /// style on every row and no ANSI state leaks across lines.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #[cfg(not(feature = "no-color"))]
+    /// # {
+    /// use pretty_console::{Line, WrapMode};
+    ///
+    /// let line = Line::new().push("total: ").push("12345 items").red();
+    /// let rows = line.wrap(12, WrapMode::Word);
+    /// assert_eq!(rows.len(), 2);
+    /// assert_eq!(rows[0].to_string(), "total: \x1b[38;5;1m12345\x1b[0m");
+    /// assert_eq!(rows[1].to_string(), "\x1b[38;5;1mitems\x1b[0m");
+    /// # }
+    /// ```
+    #[must_use]
+    pub fn wrap(&self, max_width: usize, mode: crate::text::WrapMode) -> Vec<Line> {
+        let mut tokens: Vec<crate::text::Token> = Vec::new();
+        for (index, span) in self.spans.iter().enumerate() {
+            for mut token in crate::text::tokenize(&span.text, mode) {
+                token.span = index;
+                tokens.push(token);
+            }
+        }
+        crate::text::pack_tokens(tokens, max_width)
+            .into_iter()
+            .map(|row| {
+                let mut line = Line::new();
+                let mut owner: Option<usize> = None;
+                let mut text = String::new();
+                for token in row {
+                    if owner == Some(token.span) {
+                        text.push_str(&token.text);
+                    } else {
+                        if let Some(index) = owner.take() {
+                            line.push_mut(self.spans[index].with_text(std::mem::take(&mut text)));
+                        }
+                        owner = Some(token.span);
+                        text = token.text;
+                    }
+                }
+                if let Some(index) = owner {
+                    line.push_mut(self.spans[index].with_text(text));
+                }
+                line
+            })
+            .collect()
+    }
+
     fn last_span(mut self) -> Self {
         if self.spans.is_empty() {
             self.spans.push(Span::new(String::new()));
