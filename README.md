@@ -27,6 +27,7 @@
 - **Decorations** — [`gradient`], [`rainbow`], rounded [`Panel`] boxes with inlaid titles, OSC 8 hyperlinks (`Span::link`)
 - **Adaptive colors** — detect terminal capability (`COLORTERM`, `FORCE_COLOR=1/2/3`, `TERM`) with [`supports_color_level`] and degrade truecolor via `render_with`
 - **ANSI-aware text toolkit** — [`strip_ansi`], [`visible_width`] (CJK-aware), [`truncate`] with ellipsis, [`pad`]
+- **Word wrapping** — [`wrap`], [`Span::wrap`], [`Line::wrap`] reflow styled, CJK-aware text without leaking ANSI state across lines; [`Panel::soft_wrap`] reflows fixed-width panels
 - **Rich colors** — 16 named, full 256-palette, 24-bit RGB, packed hex, *and* hex strings (`"#7c4dff"`)
 - **Ergonomics** — idempotent attributes (`.bold().bold()` emits one code), `when(condition, …)` conditional styling, `paint!`/`style!`/`line!` macros
 - **Runtime color control** — `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE`, `FORCE_COLOR`, `TERM=dumb` honored with a cached decision (zero syscalls on the hot path); stderr + fallible `try_*` printers
@@ -152,6 +153,46 @@ assert_eq!(pad("hi", 4, Align::Right, '.'), "..hi");
 assert_eq!(visible_width(&"hi".red().to_string()), 2); // escapes are zero-width
 ```
 
+### Word wrapping
+
+```rust
+use pretty_console::{Line, Span, WrapMode, Styled, wrap};
+
+// Plain text, broken at the latest space that fits.
+assert_eq!(wrap("the quick brown fox", 10, WrapMode::Word), ["the quick", "brown fox"]);
+
+// Styled text is closed at the end of a line and re-opened on the next one,
+// so reflowing never leaks attributes into later output.
+for line in wrap(&"a very long styled message".red().to_string(), 12, WrapMode::Word) {
+    println!("{line}");
+}
+
+// Composition-aware: a Line reflows across rows, keeping each span's style.
+let rows = Line::new()
+    .push("total: ").dim()
+    .push("12345 items processed").bold()
+    .wrap(16, WrapMode::Word);
+for row in rows {
+    row.println();
+}
+
+// Spans split into fragments that keep style and hyperlink.
+let fragments = Span::new("hello wonderful world").cyan().wrap(10, WrapMode::Word);
+```
+
+Fixed-width panels truncate over-wide lines by default; `soft_wrap(true)`
+reflows them instead:
+
+```rust
+use pretty_console::Panel;
+
+Panel::new()
+    .width(40)
+    .soft_wrap(true)
+    .line("a long description that would otherwise be cut off with an ellipsis")
+    .println();
+```
+
 ### Runtime color control
 
 Printing honors the global `ColorChoice` (set it from your own `--color` flag):
@@ -207,6 +248,7 @@ All ANSI generation is compiled out; every method still exists and behaves as a 
 | Capability detection + degradation | ✅ | via `supports-color` | ❌ | ❌ | ❌ |
 | Hex-string parsing | ✅ | ❌ | ✅ | ❌ | ❌ |
 | CJK-aware width, truncate, pad | ✅ | ❌ | ❌ | ❌ | ❌ |
+| ANSI-aware word wrapping | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Conditionals + macros | ✅ | partial | ❌ | ✅ | ❌ |
 | `unsafe` forbidden | ✅ | ✅ | ✅ | ✅ | ❌ |
 
@@ -252,3 +294,7 @@ MIT — see [LICENSE-MIT](LICENSE-MIT).
 [`visible_width`]: https://docs.rs/pretty_console/latest/pretty_console/fn.visible_width.html
 [`truncate`]: https://docs.rs/pretty_console/latest/pretty_console/fn.truncate.html
 [`pad`]: https://docs.rs/pretty_console/latest/pretty_console/fn.pad.html
+[`wrap`]: https://docs.rs/pretty_console/latest/pretty_console/fn.wrap.html
+[`Span::wrap`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Span.html#method.wrap
+[`Line::wrap`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Line.html#method.wrap
+[`Panel::soft_wrap`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Panel.html#method.soft_wrap
