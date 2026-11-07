@@ -1,0 +1,86 @@
+---
+title: Use exact colors
+description: Apply packed hex values, parse hex strings from config, and pick readable foregrounds with WCAG contrast.
+type: how-to
+---
+
+This guide shows how to apply exact colors from a design system, how to parse
+color strings from configuration or CLI flags, and how to choose a readable
+foreground for an arbitrary background. It assumes you can print a styled
+[`Span`](/reference/span/).
+
+## Use a packed hex value
+
+`Color::hex` builds a 24-bit RGB color from a `0xRRGGBB` value, and
+`fg_hex` / `bg_hex` apply it inline:
+
+```rust
+use pretty_console::{Color, Span, Styled};
+
+Span::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
+Span::new("Violet").fg_hex(0x7C_4D_FF).println();
+Span::new("Highlight").bg_hex(0x1E_29_3B).println();
+```
+
+`Color::hex(0x00FF7F)` equals `Color::RGB(0, 255, 127)` — the packed value is
+split into three bytes, highest first.
+
+## Parse a hex string from config or CLI
+
+`Color::from_hex_str` accepts `"#7c4dff"`, `"7c4dff"` and the three-digit
+shorthand `"#f0a"`. It returns a `ParseColorError` instead of panicking, so it
+fits configuration pipelines:
+
+```rust
+use pretty_console::{Color, Span};
+
+let theme_color = "#22d3ee";
+match Color::from_hex_str(theme_color) {
+    Ok(color) => Span::new("theme accent").fg(color).println(),
+    Err(err) => eprintln!("bad color {theme_color:?}: {err}"),
+}
+```
+
+`Color` also implements `FromStr`, so `"#22d3ee".parse::<Color>()` works with
+libraries that parse from strings generically. Errors come in two variants:
+`InvalidLength` (the string is not 3 or 6 hex digits, ignoring an optional
+leading `#`) and `InvalidDigit(char)` (a character is not a hex digit).
+
+## Use 256-palette entries
+
+For terminals where palette identity matters, `Color::indexed(n)` selects an
+entry of the 256-color table, and the sixteen constants
+`Color::BLACK`…`Color::BRIGHT_WHITE` cover the base palette:
+
+```rust
+use pretty_console::{Color, Span, Styled};
+
+Span::new("sky").fg(Color::indexed(117)).println();
+Span::new("base red").fg(Color::RED).println();
+```
+
+Palette entries render as `38;5;n` (foreground) and `48;5;n` (background);
+RGB colors render as `38;2;r;g;b` and `48;2;r;g;b`. See
+[`Color`](/reference/color/) for the exact codes.
+
+## Pick a readable foreground for a background
+
+`readable_on` returns black or white — whichever meets the WCAG 4.5:1
+contrast threshold against the color you call it on:
+
+```rust
+use pretty_console::{Color, Span, Styled};
+
+let bg = Color::hex(0x1E_29_3B);
+Span::new("readable").bg(bg).fg(bg.readable_on()).println();
+```
+
+Use it whenever a user-configurable background could be any color; the badge
+stays readable on near-black and near-white alike. `luminance()` exposes the
+underlying WCAG relative luminance if you need custom thresholds.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Color" description="Every constructor, parser and color-math member." href="/reference/color/" />
