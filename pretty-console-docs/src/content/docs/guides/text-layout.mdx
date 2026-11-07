@@ -1,0 +1,95 @@
+---
+title: Measure, truncate and pad text
+description: Measure visible width (ANSI- and CJK-aware), truncate with an ellipsis, and pad columns that line up.
+type: how-to
+---
+
+This guide shows how to measure, truncate and pad strings exactly the way a
+terminal renders them — including strings that already contain ANSI escapes or
+wide characters. Use it whenever you lay out tables, progress bars or columns.
+For the full escape grammar and range tables, see
+[Text tools](/reference/text-tools/).
+
+## Measure visible width correctly
+
+`visible_width` counts terminal columns. Escape sequences count as zero, wide
+CJK characters count as two, combining marks count as zero:
+
+```rust
+use pretty_console::{visible_width, Styled};
+
+assert_eq!(visible_width("héllo"), 5);
+assert_eq!(visible_width("日本語"), 6);          // three wide chars
+assert_eq!(visible_width(&"hi".red().to_string()), 2); // escapes are zero-width
+```
+
+The single-character building block is `char_width`.
+
+## Truncate to a column budget
+
+`truncate` cuts at `max_width` visible columns and appends the tail when
+truncation happens:
+
+```rust
+use pretty_console::truncate;
+
+assert_eq!(truncate("hello world", 8, "…"), "hello w…");
+assert_eq!(truncate("short", 8, "…"), "short");
+```
+
+Three details matter in real pipelines:
+
+1. Escape sequences survive and do not count toward the budget — styled
+   strings truncate to the same visible shape as plain ones.
+2. If any escape was emitted, a reset sequence is appended after the tail, so
+   truncation cannot leak styles into the rest of your output.
+3. When `max_width` is smaller than the tail, the tail overruns the budget
+   rather than disappearing — check your minimum widths.
+
+## Pad and align columns
+
+`pad` widens a string to exactly `width` visible columns with a fill
+character, choosing a side through `Align`:
+
+```rust
+use pretty_console::{pad, Align};
+
+assert_eq!(pad("hi", 4, Align::Left, '.'), "hi..");
+assert_eq!(pad("hi", 4, Align::Right, '.'), "..hi");
+assert_eq!(pad("hi", 5, Align::Center, '.'), ".hi..");
+```
+
+`pad` never cuts: an input wider than `width` comes back unchanged. Combine
+with `truncate` when you need both directions.
+
+## Rely on format-width padding for styled values
+
+`Display` for [`Span`](/reference/span/) and [`Line`](/reference/line/)
+computes padding from visible width, so standard format specs align styled
+values without extra work:
+
+```rust
+use pretty_console::Styled;
+
+let rows = [("fmt", "ok"), ("clippy", "ok"), ("tests", "failed")];
+for (name, status) in rows {
+    let status_span = if status == "ok" {
+        status.green()
+    } else {
+        status.red().bold()
+    };
+    println!("{:<10}| {}", name, status_span);
+}
+```
+
+The `{:<10}` pads the plain name; the styled status needs no padding
+compensation, because `{}` on a span never counts its escapes. This is the
+difference from `format!("{:<10}", "hi".red().to_string())`, which would pad
+the escaped string to the wrong visual width — use `pad` for pre-rendered
+strings.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Text tools" description="Every function with parameters, returns and edge cases." href="/reference/text-tools/" />
