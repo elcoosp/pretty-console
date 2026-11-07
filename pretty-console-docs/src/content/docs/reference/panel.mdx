@@ -1,0 +1,56 @@
+---
+title: Panel
+description: Rounded, bordered boxes with an inlaid title — builder methods, defaults and the width computation.
+type: reference
+---
+
+`Panel` renders a rounded box (`╭ ─ ╮ │ ╰ ─ ╯`) containing styled
+[`Line`](/reference/line/)s with an optional title inlaid into the top
+border. It derives `Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`, and `Default`
+equals `Panel::new()`. Source: `src/panel.rs`.
+
+## Builder methods and defaults
+
+| Method | Signature | Default | Notes |
+| --- | --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | — | Padding 1, plain border, no title, no fixed width |
+| `title` | `pub fn title(self, title: impl Into<String>) -> Self` | none | Inlaid as `─ Title` (title, one space, then dashes) into the top border; the title keeps its own style |
+| `line` | `pub fn line(self, line: impl Into<Line>) -> Self` | empty | Accepts a `Line`, a `Span`, or a plain string |
+| `lines` | `pub fn lines(self, lines: impl IntoIterator<Item = impl Into<Line>>) -> Self` | empty | Appends several at once |
+| `width` | `pub fn width(self, width: usize) -> Self` | none (auto) | Inner content width; see below |
+| `padding` | `pub fn padding(self, padding: usize) -> Self` | `1` | Horizontal padding on each side of the content |
+| `border` | `pub fn border(self, style: Style) -> Self` | plain | Styles the border characters and the title divider dashes |
+
+Content spans keep their own styles; only border and divider characters take
+the border style.
+
+## Width computation
+
+`content_width(&self) -> usize` returns the width between the vertical bars:
+
+- with an explicit width: `(width + 2 × padding)`, raised to fit the title;
+- without: `max(widest line) + 2 × padding`, raised to fit the title.
+
+The title minimum is `visible_width(title) + 2 × padding + 1`.
+
+With a fixed width, lines wider than the body are truncated with an ellipsis
+(`…`); without one, the box grows to the widest line.
+
+## Rendering
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Deterministic |
+| `render_plain` | `pub fn render_plain(&self) -> String` | All escapes stripped, for logs and tests |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Honors `ColorChoice`; fallible |
+| `print` | stdout | Panics on failure |
+| `println` | stdout + newline | Panics on failure |
+
+`Display` renders like `render`. Content lines are padded to the body width
+with `pad` using visible width, so CJK content keeps the border aligned.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Add gradients, panels and hyperlinks" description="The task-oriented guide, including fixed-width truncation." href="/guides/decorations/" />

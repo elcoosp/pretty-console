@@ -1,0 +1,112 @@
+---
+title: Style, Attribute and Effects
+description: Reusable Copy styles, the eight text attributes with their SGR codes, and the Effects bitset.
+type: reference
+---
+
+`Style` bundles a foreground color, a background color and a set of text
+attributes. It is `Copy`, `const`-constructible, and never allocates.
+`Attribute` is the enum of the eight SGR attributes; `Effects` is the `u16`
+bitset that stores them. Sources: `src/style.rs`, `src/attr.rs`.
+
+## Style
+
+Derives `Debug`, `Clone`, `Copy`, `Default`, `PartialEq`, `Eq`, `Hash`.
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | No colors, no attributes |
+| `fg` | `pub const fn fg(self, color: Color) -> Self` | Sets foreground |
+| `bg` | `pub const fn bg(self, color: Color) -> Self` | Sets background |
+| `attr` | `pub const fn attr(self, attribute: Attribute) -> Self` | Inserts one attribute |
+| `effects` | `pub const fn effects(self, effects: Effects) -> Self` | Unions a set |
+| `foreground` | `pub const fn foreground(&self) -> Option<Color>` | Get foreground |
+| `background` | `pub const fn background(&self) -> Option<Color>` | Get background |
+| `attributes` | `pub const fn attributes(&self) -> Effects` | Get the bitset |
+| `is_plain` | `pub const fn is_plain(&self) -> bool` | No colors and no attributes |
+| `merge` | `pub const fn merge(self, other: Self) -> Self` | Colors of `other` win; attributes union |
+| `degraded` | `pub fn degraded(&self, level: ColorLevel) -> Self` | Reduces both colors to `level` |
+| `paint` | `pub fn paint(self, text: impl Into<String>) -> Span` | Produces a `Span` |
+| `to_ansi_start` | `pub fn to_ansi_start(&self) -> String` | The SGR start sequence; empty when plain |
+| `when` | `pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self` | Conditional builder |
+
+`Style` also carries the same builder method names as
+[`Span`](/reference/span/): sixteen foreground colors, sixteen `on_*`
+backgrounds, eight attribute methods — all `const fn`.
+
+### Merge semantics
+
+`self.merge(other)`:
+
+- foreground: `other`'s if set, otherwise `self`'s;
+- background: `other`'s if set, otherwise `self`'s;
+- attributes: the union of both sets — no duplicates can appear.
+
+### Trait impls
+
+| Impl | Result |
+| --- | --- |
+| `From<Color>` | `Style::new().fg(color)` |
+| `From<Effects>` | `Style::new().effects(effects)` |
+| `From<Attribute>` | `Style::new().attr(attribute)` |
+
+## Attribute
+
+Derives `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`.
+
+| Variant | SGR code | Meaning |
+| --- | --- | --- |
+| `Bold` | `1` | Bold or increased intensity |
+| `Dim` | `2` | Decreased intensity |
+| `Italic` | `3` | Italic |
+| `Underline` | `4` | Underlined |
+| `Blink` | `5` | Slow blink |
+| `Reverse` | `7` | Reverse video |
+| `Hidden` | `8` | Concealed |
+| `Strikethrough` | `9` | Strikethrough |
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `ALL` | `pub const ALL: [Attribute; 8]` | Canonical emission order |
+| `code` | `pub const fn code(self) -> &'static str` | The SGR parameter above |
+| `bit` | `pub const fn bit(self) -> u16` | Its bit inside `Effects` |
+| `bit_index` | `pub const fn bit_index(self) -> u16` | Position 0–7 |
+
+## Effects
+
+A compact `Copy` bitset over the eight attributes; derives `Debug`, `Clone`,
+`Copy`, `Default`, `PartialEq`, `Eq`, `Hash`. Adding an attribute is a single
+`or`, duplicates are impossible, and every operation is `const`.
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `EMPTY` | `pub const EMPTY: Self` | No attributes |
+| `BOLD` … `STRIKETHROUGH` | one `pub const` per attribute | Single-bit sets |
+| `ALL` | `pub const ALL: Self` | `0x00FF` |
+| `from_bits` | `pub const fn from_bits(bits: u16) -> Self` | Unknown bits masked off |
+| `bits` | `pub const fn bits(self) -> u16` | Raw bits |
+| `is_empty` | `pub const fn is_empty(self) -> bool` | No attribute set |
+| `contains` | `pub const fn contains(self, other: Self) -> bool` | Superset test |
+| `has` | `pub const fn has(self, attribute: Attribute) -> bool` | Single-attribute test |
+| `insert` | `pub const fn insert(self, attribute: Attribute) -> Self` | Adds one attribute |
+| `remove` | `pub const fn remove(self, attribute: Attribute) -> Self` | Removes one attribute |
+| `union` | `pub const fn union(self, other: Self) -> Self` | Bitwise or |
+| `without` | `pub const fn without(self, other: Self) -> Self` | Difference |
+| `attributes` | `pub fn attributes(self) -> EffectIter` | Iterator in canonical order |
+
+Operators: `BitOr`/`BitOrAssign` forward to `union`; `Sub` forwards to
+`without`. `Display` prints the set's SGR parameters joined with `;` — an
+empty set prints nothing.
+
+## EffectIter
+
+`EffectIter` is the iterator produced by `Effects::attributes`. It yields
+`Attribute` items in canonical emission order (bold → strikethrough) and
+implements `ExactSizeIterator`. It is `Copy` — a cursor over the bitset,
+cheaper to copy than to borrow.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="The zero-cost design" description="Why styles are Copy values and what the bitset buys." href="/explanation/zero-cost-design/" />

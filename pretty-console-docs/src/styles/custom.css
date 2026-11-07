@@ -1,0 +1,23 @@
+/*
+ * Brand accent derived from the logo's violet wave.
+ * Sampled dominant vivid hue: rgb(161, 83, 249) at hue 270° (see
+ * docs/decisions/0002-logo-format.md). The raw sample reaches 4.10:1 on
+ * white, below the WCAG AA 4.5:1 threshold, so the light-mode accent is a
+ * darkened derivative and the dark-mode accent a lightened derivative.
+ * Verified contrast (WCAG relative luminance):
+ *   #7c3aed on white          5.70:1 (AA)
+ *   #5b21b6 on #f3ecfe        7.57:1 (AA)
+ *   #c084fc on #1b1c20        6.44:1 (AA)
+ *   #ddd6fe on #28203f       11.05:1 (AA)
+ */
+:root {
+	--sl-color-accent-low: #f3ecfe;
+	--sl-color-accent: #7c3aed;
+	--sl-color-accent-high: #5b21b6;
+}
+
+[data-theme='dark'] {
+	--sl-color-accent-low: #28203f;
+	--sl-color-accent: #c084fc;
+	--sl-color-accent-high: #ddd6fe;
+}

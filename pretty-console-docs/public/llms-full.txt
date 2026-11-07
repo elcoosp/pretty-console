@@ -1,0 +1,1977 @@
+# pretty-console — the fluent, zero-cost terminal styling toolkit for Rust.
+
+---
+
+<!-- src/content/docs/index.mdx -->
+# pretty-console
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard title="Tutorials" description="Learn by building: install the crate and print your first styled lines." href="/tutorials/getting-started/" />
+  <LinkCard title="How-to guides" description="Solve a specific problem: reusable styles, status lines, degradation, panels and more." href="/guides/reusable-styles/" />
+  <LinkCard title="Reference" description="Look up any Span, Style, Color, Line, Panel or macro member precisely." href="/reference/span/" />
+  <LinkCard title="Explanation" description="Understand the zero-cost design, the rendering model and why v2 exists." href="/explanation/zero-cost-design/" />
+</CardGrid>
+
+Rust 1.85+ · Edition 2024 · Zero dependencies · `#![forbid(unsafe_code)]` · [crates.io](https://crates.io/crates/pretty-console) · [docs.rs](https://docs.rs/pretty_console)
+
+---
+
+<!-- src/content/docs/explanation/design-history.mdx -->
+# How v2 came to be
+
+Version 2.0 was not an accumulation of features but a redesign driven by an
+audit. This page summarizes that record — the findings, the decisions and the
+non-goals — as the project itself documented it in `docs/DESIGN.md` and
+`CHANGELOG.md`. Statements below are sourced from those documents; where the
+*why* is unrecorded, the page presents only what the code does.
+
+## What v1 cost
+
+The performance audit of 1.1.0 found six structural costs. Each rendering of
+a styled value allocated repeatedly: a `Vec<Attribute>` cloned on every
+builder call, `String`s returned per color code, a `Vec<String>` joined into
+the start sequence, and a `format!` plus text clone in `render`. Printing
+re-read the environment variables on every line. And `Style` was neither
+`Copy` nor `const`-constructible, so no static style tables were possible.
+
+## What v1 lacked
+
+The DX audit, comparing against `owo-colors`, `yansi`, `colored`, `anstyle`
+and `termcolor`, found the gaps that became v2's feature list: no
+multi-segment lines, no hyperlinks, no gradients, no capability detection or
+degradation, no hex-string parsing, no ANSI-aware text toolkit, no
+conditional styling, no macros, no panels, no contrast helper, no fallible
+IO, width computed from `chars()` instead of terminal columns, and duplicate
+attributes emitting duplicate codes. One finding was a naming one: `Console`
+was not a console but a styled string.
+
+## The core model decisions
+
+The redesign landed on a small set of interlocking decisions:
+
+- `Style` and `Effects` became `Copy`, `const`-constructible values; the
+  attribute list became a `u16` bitset with canonical emission order and
+  idempotent adds.
+- `Span` became the primary type — text plus style plus optional OSC 8 link —
+  with `Display` writing SGR codes straight into the formatter.
+- `Line` became the composition primitive, with styling methods that apply to
+  the last pushed span so chains read left to right.
+- The deterministic-rendering philosophy of v1 was kept and made explicit:
+  string rendering never consults the environment; only printing does.
+
+## Compatibility strategy
+
+The MSRV stayed at 1.85 (edition 2024), `unsafe` stayed forbidden, and the
+crate kept zero runtime dependencies. `Console` remains a type alias of
+`Span`, so most 1.x code keeps compiling. Three breaking changes were accepted
+and documented: canonical, deduplicated attribute codes; `Style::attributes()`
+returning the `Effects` bitset instead of `&[Attribute]`; and the `insta`
+snapshot dev-dependency replaced by exact-string contract tests. The
+[migration guide](/guides/migrate-from-v1/) turns these into steps.
+
+## Non-goals
+
+The design document names what v2 deliberately does not do:
+
+- Window-size queries, cursor control and alternate screens — the territory
+  of terminal-control crates.
+- Full Unicode width parity with the `unicode-width` crate — the built-in
+  table covers the common CJK, emoji and combining ranges, documented as an
+  approximation in service of the zero-dependency guarantee.
+
+These boundaries are stable design positions, not missing features; a PR
+introducing either would be reversing a recorded decision rather than filling
+a gap.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="The zero-cost design" description="How the audit findings translated into the implementation." href="/explanation/zero-cost-design/" />
+
+---
+
+<!-- src/content/docs/explanation/rendering-model.mdx -->
+# Deterministic rendering
+
+pretty-console draws a sharp line between two ways output leaves your
+program. Understanding it predicts what your tests, logs and terminals will
+show. This page is an observation of documented and tested behavior in
+`src/lib.rs`, `src/span.rs` and `src/style.rs`.
+
+## Two paths, two contracts
+
+| Path | Members | Environment |
+| --- | --- | --- |
+| String rendering | `render`, `render_with`, `to_string`, `Display` | Never consulted |
+| Printing | `print`, `println`, `eprint`, `eprintln`, `try_*`, `write_to` | Honors `ColorChoice` |
+
+The same [`Span`](/reference/span/) renders identically on a CI runner and in
+an interactive terminal. Printing, on the other hand, decides at call time
+whether to write the rendered string or the plain text, based on the global
+[`ColorChoice`](/reference/color-control/).
+
+## What determinism buys you
+
+- Exact-output tests (`assert_eq!` on `to_string()`) are stable across
+  machines, shells and CI — the project itself relies on this in its contract
+  tests.
+- Logs written to files keep their escapes (or keep none, if you render
+  explicitly) regardless of where the program ran.
+- `format!` never changes its mind between environments.
+
+The cost is that `to_string()` alone cannot respect `NO_COLOR` — that is a
+printing concern by design, and the boundary is deliberate.
+
+## The print family's environment contract
+
+When a print method runs, it checks whether colors are enabled. If yes, the
+rendered string goes to the stream; if no, the plain text does — the same
+bytes a `strip_ansi` of the rendered string would produce, with no leftover
+escape codes and no link sequences. This is why
+[`Span::link`](/reference/span/) needs no special handling in plain mode:
+the plain branch never emits it.
+
+## Canonical ordering and idempotence
+
+Within one ANSI sequence, attributes are emitted first — in the fixed order
+bold, dim, italic, underline, blink, reverse, hidden, strikethrough — then
+the foreground color, then the background color. Two properties follow:
+
+1. The same style always produces the same byte sequence, whatever order the
+   builder methods were called in.
+2. Repeating an attribute changes nothing; the bitset cannot hold a duplicate.
+
+Both properties are covered by exact-string contract tests in the repository
+(`tests/contract.rs`), and both are v2 changes — v1 emitted attributes in
+insertion order with possible duplicates.
+
+## Plain styles emit nothing
+
+A style with no colors and no attributes is *plain*, and a plain span renders
+as its bare text: no start sequence, no reset. The reset is only written when
+a start sequence was. So `Span::new("hi").to_string()` is exactly `"hi"` —
+relevant when you conditionally style and do not want empty `ESC [m` noise.
+
+## The no-color feature
+
+The compile-time `no-color` feature removes ANSI generation from the binary
+entirely. Every method still exists and behaves as a pass-through:
+`is_color_enabled()` returns `false`, links are suppressed, and the text
+tools, `Panel` and level helpers keep working. The distinction from
+`ColorChoice::Never` is binary size and the impossibility of re-enabling at
+runtime.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Span" description="The rendering and printing members this page discusses." href="/reference/span/" />
+
+---
+
+<!-- src/content/docs/explanation/zero-cost-design.mdx -->
+# The zero-cost design
+
+pretty-console describes itself as *zero-cost*. This page explains what that
+means concretely — where the costs went, and what remains. The decisions
+recorded here come from the project's own design document
+(`docs/DESIGN.md` in the repository) and from the code itself.
+
+## What zero-cost means here
+
+The crate never allocates while *rendering* a styled value into a formatter,
+and it never re-reads the environment while printing. Allocation still
+happens where it is inherent: `Span` owns a `String`, and a `Line` owns its
+`Vec<Span>`. What is gone is the hidden tax most styling libraries pay per
+rendered value.
+
+## Styles are values, not builders with state
+
+`Style` is a small `Copy` struct — an optional foreground, an optional
+background, an attribute bitset. Building, merging and cloning a style
+compiles to register moves. A v1-style `Vec<Attribute>` was the audit's
+first finding: every builder call cloned a heap list. In v2 the whole style
+can live in a `const`:
+
+```rust
+use pretty_console::{Color, Style};
+
+const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
+```
+
+## The Effects bitset
+
+Attributes live in a `u16` bitset, one bit per attribute. Consequences that
+matter beyond memory:
+
+- `.bold().bold()` emits one code, not two — duplicates are structurally
+  impossible.
+- Emission order is fixed by bit order (bold → strikethrough), not by call
+  order, which makes output contract-testable.
+- `merge` is a single `or`.
+
+## Writing codes straight into the formatter
+
+`Display` for `Span` writes the SGR start sequence, the text, and the reset
+directly into the destination `fmt::Formatter`. There is no intermediate
+`String` in `write!`/`print!` paths, and the decimal digits of SGR parameters
+are written without going through `format!`. The audit counted at least five
+allocations per render in v1; the v2 render path has none.
+
+## One environment decision, cached
+
+Deciding whether colors are enabled inspects several environment variables
+and stdout. Doing that per printed line costs syscalls. v2 performs the
+`Auto` decision once and caches it in an atomic; `set_color_choice`
+invalidates the cache. After the first print, the hot path performs no
+environment access at all.
+
+## Visible width in a single pass
+
+`truncate` and `pad` measure and rewrite in one pass over the input, with a
+byte scanner for `strip_ansi` that searches for the next `ESC` and copies
+slices between them. The width table itself covers the common CJK, emoji and
+combining ranges without pulling in the `unicode-width` crate — a documented
+trade-off between exactness and the zero-dependency guarantee.
+
+## What this does not cover
+
+The benchmark numbers in the repository README were measured on a CI-class
+Linux VM; reproduce them with `cargo run --release --example bench` before
+treating them as your own numbers. And "zero-cost" is about allocation and
+syscalls — terminal rendering itself, and the width approximation above,
+remain practical approximations of what any terminal does.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Deterministic rendering" description="The other half of the output contract." href="/explanation/rendering-model/" />
+
+---
+
+<!-- src/content/docs/guides/decorations.mdx -->
+# Add gradients, panels and hyperlinks
+
+This guide shows how to produce the decorative output forms: per-character
+gradients, rainbows, rounded panels with inlaid titles, and clickable
+hyperlinks. It assumes you can print a styled [`Span`](/reference/span/).
+
+## Fade a gradient across text
+
+`gradient` interpolates from one color to another, one character at a time,
+and returns a [`Line`](/reference/line/):
+
+```rust
+use pretty_console::{gradient, Color};
+
+gradient("sunrise fade", Color::hex(0xFF3E6C), Color::hex(0x4DC4FF)).println();
+```
+
+`gradient_bg` does the same for backgrounds. Both honor
+[`ColorChoice`](/reference/color-control/) when printing, and both can be
+pre-degraded with `render_with` like any line.
+
+## Paint a rainbow
+
+`rainbow` cycles the full hue wheel across the text's characters:
+
+```rust
+use pretty_console::rainbow;
+
+rainbow("the full spectrum, one hue per character").println();
+```
+
+`rainbow_bg` paints the same spectrum as backgrounds. Whitespace is colored
+too — the spectrum covers every character, not every visible glyph — and each
+character is its own span, so the resulting line's `spans()` has one entry per
+character.
+
+## Build a titled panel
+
+`Panel` draws a rounded box with an optional title inlaid into the top border.
+Content lines accept a [`Line`](/reference/line/), a
+[`Span`](/reference/span/), or a plain string:
+
+```rust
+use pretty_console::{Line, Panel, Span, Style, Styled};
+
+Panel::new()
+    .title("Summary")
+    .border(Style::new().bright_black())
+    .line(Line::new().push("passed: ").dim().push("128").green().bold())
+    .line("skipped: 3".dim())
+    .line(Span::new("failed: 0").green())
+    .println();
+```
+
+The inner width fits the widest line plus padding by default; the title can
+widen the box. Only the border characters and the title divider take the
+border style — content keeps its own colors.
+
+## Fix the panel width
+
+`width` sets the inner content width explicitly. It acts as a floor for the
+title and truncates over-wide lines with an ellipsis:
+
+```rust
+use pretty_console::Panel;
+
+let panel = Panel::new()
+    .title("Build report")
+    .width(40)
+    .line("a very long status line that will be cut");
+panel.println();
+```
+
+When a line exceeds the fixed width, `render` cuts it at the visible-width
+budget and appends `…`, so the box never breaks its own border. Drop the
+`.width(40)` call to let the box size itself.
+
+## Make text clickable with OSC 8
+
+`link` attaches a hyperlink. Supporting terminals make the text clickable;
+others ignore the sequence:
+
+```rust
+use pretty_console::{Span, Styled};
+
+Span::new("pretty-console on GitHub")
+    .blue()
+    .underline()
+    .link("https://github.com/elcoosp/pretty-console")
+    .println();
+```
+
+The link wraps the styled text and is removed by `unlink()`; `url()` returns
+it for inspection. Links are emitted only when printing with colors enabled —
+with colors off, or under the `no-color` feature, the plain text prints.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Panel" description="Every builder method, default and the width formula." href="/reference/panel/" />
+
+---
+
+<!-- src/content/docs/guides/degrade-colors.mdx -->
+# Degrade colors
+
+This guide shows how to detect what a terminal can display and how to render
+truecolor content at a lower capability level. Use it when output must survive
+CI logs, `ssh` sessions or IDE consoles that only understand a subset of ANSI
+colors. For turning colors off entirely, see
+[Control colors at runtime](/guides/runtime-color-control/).
+
+## Detect the terminal capability
+
+`supports_color_level()` inspects `FORCE_COLOR`, `CLICOLOR_FORCE`, `NO_COLOR`,
+`CLICOLOR`, `TERM` and `COLORTERM`, then falls back to stdout detection. It
+returns `None` when no colors should be emitted at all:
+
+```rust
+use pretty_console::{supports_color_level, ColorLevel};
+
+match supports_color_level() {
+    Some(ColorLevel::TrueColor) => println!("terminal can display everything"),
+    Some(level) => println!("terminal degrades to {level:?}"),
+    None => println!("no colors at all"),
+}
+```
+
+## Render a span or line at a level
+
+`render_with` reduces every color of the styled value to the richest
+representation the level supports. Unlike `render`, it exists for exactly this
+situation — pre-degrading before you ship the string somewhere else:
+
+```rust
+use pretty_console::{ColorLevel, Line, Span, Styled};
+
+let fancy = "truecolor text".fg_hex(0x7C_4D_FF);
+println!("{}", fancy.render_with(ColorLevel::Ansi256)); // nearest palette entry
+println!("{}", fancy.render_with(ColorLevel::Ansi16));  // nearest of the 16 base colors
+
+let line = Line::new().push("done ").push("fast").fg_hex(0x22_D3_EE);
+println!("{}", line.render_with(ColorLevel::Ansi16));
+```
+
+The returned string is plain text with the degraded escapes baked in — write it
+to logs, a pipe or a file as-is.
+
+## Degrade a single color
+
+`Color` exposes the same reduction so you can render palette swatches or
+legends that match the degraded output:
+
+```rust
+use pretty_console::{Color, ColorLevel};
+
+let brand = Color::hex(0x7C_4D_FF);
+let for_256 = brand.degrade_to(ColorLevel::Ansi256);
+let for_16 = brand.degrade_to(ColorLevel::Ansi16);
+```
+
+`degrade_to` keeps colors that the level can represent exactly (a base color
+stays itself at `Ansi16`), maps RGB to the nearest 256-palette entry, and maps
+anything to the nearest of the 16 base colors at `Ansi16`.
+
+## Produce stable output for CI logs
+
+Combine detection and degradation in one place, early in `main`:
+
+```rust
+use pretty_console::{supports_color_level, ColorLevel, Span, Styled};
+
+fn render_report(body: &str) -> String {
+    let level = supports_color_level().unwrap_or(ColorLevel::Ansi16);
+    Span::new(body).bold().render_with(level)
+}
+```
+
+On a color-less runner, `supports_color_level()` returns `None` and the
+`unwrap_or` keeps your pipeline rendering (as plain 16-color output); pick
+`ColorChoice::Never` instead if you want no escapes at all — see
+[Control colors at runtime](/guides/runtime-color-control/).
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Color control" description="The exact detection order and environment variables." href="/reference/color-control/" />
+
+---
+
+<!-- src/content/docs/guides/exact-colors.mdx -->
+# Use exact colors
+
+This guide shows how to apply exact colors from a design system, how to parse
+color strings from configuration or CLI flags, and how to choose a readable
+foreground for an arbitrary background. It assumes you can print a styled
+[`Span`](/reference/span/).
+
+## Use a packed hex value
+
+`Color::hex` builds a 24-bit RGB color from a `0xRRGGBB` value, and
+`fg_hex` / `bg_hex` apply it inline:
+
+```rust
+use pretty_console::{Color, Span, Styled};
+
+Span::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
+Span::new("Violet").fg_hex(0x7C_4D_FF).println();
+Span::new("Highlight").bg_hex(0x1E_29_3B).println();
+```
+
+`Color::hex(0x00FF7F)` equals `Color::RGB(0, 255, 127)` — the packed value is
+split into three bytes, highest first.
+
+## Parse a hex string from config or CLI
+
+`Color::from_hex_str` accepts `"#7c4dff"`, `"7c4dff"` and the three-digit
+shorthand `"#f0a"`. It returns a `ParseColorError` instead of panicking, so it
+fits configuration pipelines:
+
+```rust
+use pretty_console::{Color, Span};
+
+let theme_color = "#22d3ee";
+match Color::from_hex_str(theme_color) {
+    Ok(color) => Span::new("theme accent").fg(color).println(),
+    Err(err) => eprintln!("bad color {theme_color:?}: {err}"),
+}
+```
+
+`Color` also implements `FromStr`, so `"#22d3ee".parse::<Color>()` works with
+libraries that parse from strings generically. Errors come in two variants:
+`InvalidLength` (the string is not 3 or 6 hex digits, ignoring an optional
+leading `#`) and `InvalidDigit(char)` (a character is not a hex digit).
+
+## Use 256-palette entries
+
+For terminals where palette identity matters, `Color::indexed(n)` selects an
+entry of the 256-color table, and the sixteen constants
+`Color::BLACK`…`Color::BRIGHT_WHITE` cover the base palette:
+
+```rust
+use pretty_console::{Color, Span, Styled};
+
+Span::new("sky").fg(Color::indexed(117)).println();
+Span::new("base red").fg(Color::RED).println();
+```
+
+Palette entries render as `38;5;n` (foreground) and `48;5;n` (background);
+RGB colors render as `38;2;r;g;b` and `48;2;r;g;b`. See
+[`Color`](/reference/color/) for the exact codes.
+
+## Pick a readable foreground for a background
+
+`readable_on` returns black or white — whichever meets the WCAG 4.5:1
+contrast threshold against the color you call it on:
+
+```rust
+use pretty_console::{Color, Span, Styled};
+
+let bg = Color::hex(0x1E_29_3B);
+Span::new("readable").bg(bg).fg(bg.readable_on()).println();
+```
+
+Use it whenever a user-configurable background could be any color; the badge
+stays readable on near-black and near-white alike. `luminance()` exposes the
+underlying WCAG relative luminance if you need custom thresholds.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Color" description="Every constructor, parser and color-math member." href="/reference/color/" />
+
+---
+
+<!-- src/content/docs/guides/migrate-from-v1.mdx -->
+# Migrate from 1.x
+
+This guide lists the concrete steps for upgrading from pretty-console 1.x to
+2.0, with the exact breaking changes and their fixes. For the reasoning behind
+the redesign, see [How v2 came to be](/explanation/design-history/).
+
+## Bump the dependency
+
+```sh
+cargo add pretty-console@2.0.0
+```
+
+2.0 needs Rust 1.85 or newer (edition 2024). Check your `rust-toolchain.toml`
+and CI matrix before continuing.
+
+## Keep or rename Console
+
+`Console` still exists as a type alias of [`Span`](/reference/span/), so
+existing `Console::new("...").red().println()` code keeps compiling. New code
+should spell the type `Span`:
+
+```rust
+use pretty_console::Span;
+
+// Before: Console::new("hi").red();
+// Now:
+let span = Span::new("hi").red();
+```
+
+`Console::new_with_style` also keeps working; the Span-native spellings are
+`Span::new_with_style(text, style)` and `Style::paint(text)`.
+
+## Fix exact-output tests
+
+Attribute codes are now emitted in **canonical order** (bold → dim → italic →
+underline → blink → reverse → hidden → strikethrough), followed by the
+foreground color, then the background color — not insertion order — and
+duplicates are removed. If you snapshot exact escape strings, update them:
+
+```rust
+// Before (1.x, insertion order, duplicates possible):
+//   bold().bold() could emit "1;1"
+// Now: one code, canonical position:
+assert_eq!(
+    Span::new("hi").bold().bold().to_string(),
+    "\x1b[1mhi\x1b[0m"
+);
+```
+
+The `insta` snapshot dev-dependency is gone; the project itself now asserts
+exact strings in contract tests. If you depended on `insta` only for
+pretty-console output, plain `assert_eq!` on `to_string()` is the supported
+replacement.
+
+## Update attributes() consumers
+
+`Style::attributes()` used to hand out `&[Attribute]`. It now returns an
+`Effects` bitset — a `Copy` value with `has`, `contains`, `insert`, `remove`,
+`union` and an `attributes()` iterator:
+
+```rust
+use pretty_console::{Attribute, Style, Styled};
+
+let style = Style::new().bold().underline();
+let effects = style.attributes();
+assert!(effects.has(Attribute::Bold));
+assert_eq!(effects.attributes().count(), 2);
+```
+
+Code that matched on slice contents should query the bitset with
+`has(Attribute::…)` or `contains(Effects::…)` instead.
+
+## Adopt the Span-native spellings
+
+The following renames are mechanical:
+
+| 1.x | 2.0 |
+| --- | --- |
+| `Console` | `Span` (alias kept) |
+| `Console::new_with_style` | `Span::new_with_style` / `Style::paint` |
+| `&[Attribute]` from `attributes()` | `Effects` bitset |
+| insertion-order attribute codes | canonical order, deduplicated |
+
+Everything else — level helpers, `banner`, the `Styled` trait — kept its v1
+signature.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="How v2 came to be" description="The audit findings and decisions behind the redesign." href="/explanation/design-history/" />
+
+---
+
+<!-- src/content/docs/guides/reusable-styles.mdx -->
+# Reuse and merge styles
+
+This guide shows how to define a reusable `Style`, apply it to different
+texts, and combine styles without duplicating attributes. It assumes you
+already install the crate and print spans — see
+[Getting started](/tutorials/getting-started/) if you do not.
+
+## Define a style once
+
+`Style` is `Copy` and `const`-constructible, so a style can live in a `const`
+or `static` and never allocate:
+
+```rust
+use pretty_console::{Color, Style};
+
+const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
+
+HEADING.paint("Chapter 1").println();
+HEADING.paint("Chapter 2").println();
+```
+
+`Style::paint(text)` produces a ready-to-print [`Span`](/reference/span/).
+
+## Apply it to different text
+
+When you already hold a styled [`Span`](/reference/span/) and want to keep its
+style but change the text, use `with_text`:
+
+```rust
+use pretty_console::{Span, Styled};
+
+let error = Span::new("").red().bold();
+error.with_text("Error 1: Something went wrong").println();
+error.with_text("Error 2: Another issue").println();
+```
+
+## Merge two styles
+
+`merge` combines two styles: colors set by the argument win, and attribute
+sets are unioned — duplicates are impossible because attributes live in a
+bitset:
+
+```rust
+use pretty_console::{Color, Style};
+
+let heading = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
+let emphasis = Style::new().fg(Color::RED);
+
+// Red wins; bold and underline stay.
+heading.merge(emphasis).paint("Important").println();
+```
+
+This is the rule to remember when layering a base style with an override:
+the override's foreground and background replace the base's, attributes from
+both sides are kept.
+
+## Convert colors and attributes into styles
+
+`Style` implements `From<Color>`, `From<Attribute>` and `From<Effects>`, so
+single-purpose values convert directly:
+
+```rust
+use pretty_console::{Attribute, Color, Style};
+
+let colored = Style::from(Color::CYAN);
+let tilted = Style::from(Attribute::Italic);
+```
+
+## Adjust conditionally with `when`
+
+`when` keeps builder chains flat instead of forcing `if` statements around
+them:
+
+```rust
+use pretty_console::{Color, Style};
+
+let verbose = std::env::var("VERBOSE").is_ok();
+let style = Style::new().when(verbose, |s| s.fg(Color::CYAN).dim());
+```
+
+The closure runs only when the condition holds; otherwise the style passes
+through untouched. [`Span`](/reference/span/) and
+[`Line`](/reference/line/) have the same `when` method.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Style, Attribute and Effects" description="Every member with signature and semantics." href="/reference/style/" />
+
+---
+
+<!-- src/content/docs/guides/runtime-color-control.mdx -->
+# Control colors at runtime
+
+This guide shows how printed output decides between styled and plain text, how
+to wire that decision into your own `--color` flag, and how to print without
+panicking on closed pipes. For lowering the color *depth* instead of switching
+colors off, see [Degrade colors](/guides/degrade-colors/).
+
+## Default behavior
+
+The print family — `print`, `println`, `eprint`, `eprintln` and `write_to` —
+honors a global [`ColorChoice`](/reference/color-control/). The default,
+`Auto`, checks the environment and stdout:
+
+```rust
+use pretty_console::{Span, Styled};
+
+// Styled when colors are enabled, plain text otherwise.
+Span::new("hello").red().println();
+```
+
+The detection runs once, is cached, and never touches the environment again on
+the hot printing path. String rendering (`to_string`, `render`, `Display`) is
+unaffected — see [Deterministic rendering](/explanation/rendering-model/) for
+why.
+
+## The environment variables pretty-console honors
+
+| Variable | Effect |
+| --- | --- |
+| `FORCE_COLOR` | `0` turns colors off; `1`/`2`/`3` force them on (Node.js convention); empty means unset |
+| `CLICOLOR_FORCE` | Any non-`0` value forces colors on |
+| `NO_COLOR` | Any non-empty value disables colors ([no-color.org](https://no-color.org/)) |
+| `CLICOLOR` | `0` disables colors |
+| `TERM` | `dumb` disables colors |
+| `COLORTERM` | `truecolor`/`24bit` advertises truecolor capability (used by detection, not by the on/off switch) |
+
+`FORCE_COLOR` wins over `CLICOLOR_FORCE`; forcing variables win over
+disabling ones. The exact precedence lives in
+[`Color control`](/reference/color-control/).
+
+## Wire a --color flag
+
+Set the global choice after parsing your CLI arguments. `Auto` restores
+environment-driven behavior:
+
+```rust
+use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
+
+enum ColorFlag {
+    Always,
+    Never,
+    Auto,
+}
+
+fn main() {
+    let flag = parse_color_flag(); // your --color handling
+    set_color_choice(match flag {
+        ColorFlag::Always => ColorChoice::Always,
+        ColorFlag::Never => ColorChoice::Never,
+        ColorFlag::Auto => ColorChoice::Auto,
+    });
+
+    Span::new("styled or plain, decided above").cyan().println();
+}
+```
+
+`set_color_choice` invalidates the cached `Auto` decision, so the next print
+re-evaluates if you switch back to `Auto`.
+
+## Print to stderr
+
+Diagnostics belong on stderr; the `e*` variants behave like their stdout
+siblings and honor the same choice:
+
+```rust
+use pretty_console::{Span, Styled};
+
+Span::error("Disk full").eprintln();
+```
+
+## Handle broken pipes with try_*
+
+The plain print methods panic when the underlying stream fails — for example
+when stdout is a closed pipe (`myapp | head -n 1`). The `try_*` variants
+return `io::Result<()>` instead:
+
+```rust
+use pretty_console::{Span, Styled};
+
+if Span::new("streaming…").dim().try_println().is_err() {
+    // downstream closed the pipe — exit quietly
+}
+```
+
+`write_to` does the same for any writer you hold:
+
+```rust
+use pretty_console::{Span, Styled};
+
+fn main() -> std::io::Result<()> {
+    let mut buffer: Vec<u8> = Vec::new();
+    Span::new("logged").green().write_to(&mut buffer)?;
+    Ok(())
+}
+```
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Color control" description="Every function and variable with its exact behavior." href="/reference/color-control/" />
+
+---
+
+<!-- src/content/docs/guides/status-lines.mdx -->
+# Compose status lines
+
+This guide shows how to build a single row out of differently styled segments,
+how the styling methods attach to segments, and how to align whole lines. It
+assumes you can already print a styled [`Span`](/reference/span/).
+
+## Push segments left to right
+
+[`Line`](/reference/line/) collects spans and renders them as one row. Push a
+segment, then style it — the styling methods always apply to the **last
+pushed** segment:
+
+```rust
+use pretty_console::Line;
+
+let line = Line::new()
+    .push("  build ").dim()
+    .push("cargo build --release").bold()
+    .push(" finished in ").push("4.2s").green();
+line.println();
+```
+
+Read the chain as a cursor: `.push("...")` moves the cursor to a new segment;
+`.dim()`, `.bold()` and `.green()` restyle the segment under the cursor. The
+connector `" finished in "` gets no styling calls, so it stays plain.
+
+## Understand the last-span rule
+
+Because styling applies to the last pushed segment, the order of `push` and
+style calls decides what gets colored:
+
+```rust
+use pretty_console::Line;
+
+// Red applies to "world", not to "hello ".
+let line = Line::new().push("hello ").push("world").red();
+```
+
+If you style before pushing anything, the line creates an empty trailing
+segment and styles that — harmless, but pointless. Style after the `push`
+whose segment you mean to color.
+
+## Build a line from an iterator
+
+For segments that already exist as spans, construct directly:
+
+```rust
+use pretty_console::{Line, Span, Styled};
+
+let spans = vec![
+    "status: ".styled(),
+    Span::new("ok").green().bold(),
+];
+let line = Line::from_spans(spans);
+```
+
+`Line` also implements `FromIterator<Span>` and `From<Vec<Span>>`, so
+`collect()` works on span iterators.
+
+## Restyle every span at once
+
+`with_style` merges a style into **every** span of the line; the merged
+style's colors win over per-span colors, attributes are unioned:
+
+```rust
+use pretty_console::{Line, Style};
+
+let line = Line::new().push("a ").push("b").red();
+let dimmed = line.with_style(Style::new().dim());
+```
+
+`map_span` rewrites each span through a closure when you need per-span logic.
+
+## Accumulate in a loop
+
+In loops, collect the row by reassigning the builder — [`Line`](/reference/line/)
+methods consume and return the line (`push_mut` appends in place when you do
+not need to style the new segment):
+
+```rust
+use pretty_console::Line;
+
+let mut line = Line::new();
+for (name, ok) in [("fmt", true), ("clippy", true), ("tests", false)] {
+    line = line.push(name);
+    if ok {
+        line = line.push(" ✓").green();
+    } else {
+        line = line.push(" ✗").red();
+    }
+    line = line.push("  ");
+}
+line.println();
+```
+
+## Align a whole line with format widths
+
+`Display` for `Line` pads by the line's **visible** width — ANSI escapes and
+wide CJK characters are measured the way a terminal renders them:
+
+```rust
+use pretty_console::Line;
+
+let line = Line::new().push("cache ").push("warm").green();
+println!("{:<20}|", line);
+```
+
+Left, right and center alignment follow the standard format spec, and the
+padding is computed from visible columns — so columns line up even when the
+segments contain escapes or CJK text.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Line" description="Every member with signature and semantics." href="/reference/line/" />
+
+---
+
+<!-- src/content/docs/guides/text-layout.mdx -->
+# Measure, truncate and pad text
+
+This guide shows how to measure, truncate and pad strings exactly the way a
+terminal renders them — including strings that already contain ANSI escapes or
+wide characters. Use it whenever you lay out tables, progress bars or columns.
+For the full escape grammar and range tables, see
+[Text tools](/reference/text-tools/).
+
+## Measure visible width correctly
+
+`visible_width` counts terminal columns. Escape sequences count as zero, wide
+CJK characters count as two, combining marks count as zero:
+
+```rust
+use pretty_console::{visible_width, Styled};
+
+assert_eq!(visible_width("héllo"), 5);
+assert_eq!(visible_width("日本語"), 6);          // three wide chars
+assert_eq!(visible_width(&"hi".red().to_string()), 2); // escapes are zero-width
+```
+
+The single-character building block is `char_width`.
+
+## Truncate to a column budget
+
+`truncate` cuts at `max_width` visible columns and appends the tail when
+truncation happens:
+
+```rust
+use pretty_console::truncate;
+
+assert_eq!(truncate("hello world", 8, "…"), "hello w…");
+assert_eq!(truncate("short", 8, "…"), "short");
+```
+
+Three details matter in real pipelines:
+
+1. Escape sequences survive and do not count toward the budget — styled
+   strings truncate to the same visible shape as plain ones.
+2. If any escape was emitted, a reset sequence is appended after the tail, so
+   truncation cannot leak styles into the rest of your output.
+3. When `max_width` is smaller than the tail, the tail overruns the budget
+   rather than disappearing — check your minimum widths.
+
+## Pad and align columns
+
+`pad` widens a string to exactly `width` visible columns with a fill
+character, choosing a side through `Align`:
+
+```rust
+use pretty_console::{pad, Align};
+
+assert_eq!(pad("hi", 4, Align::Left, '.'), "hi..");
+assert_eq!(pad("hi", 4, Align::Right, '.'), "..hi");
+assert_eq!(pad("hi", 5, Align::Center, '.'), ".hi..");
+```
+
+`pad` never cuts: an input wider than `width` comes back unchanged. Combine
+with `truncate` when you need both directions.
+
+## Rely on format-width padding for styled values
+
+`Display` for [`Span`](/reference/span/) and [`Line`](/reference/line/)
+computes padding from visible width, so standard format specs align styled
+values without extra work:
+
+```rust
+use pretty_console::Styled;
+
+let rows = [("fmt", "ok"), ("clippy", "ok"), ("tests", "failed")];
+for (name, status) in rows {
+    let status_span = if status == "ok" {
+        status.green()
+    } else {
+        status.red().bold()
+    };
+    println!("{:<10}| {}", name, status_span);
+}
+```
+
+The `{:<10}` pads the plain name; the styled status needs no padding
+compensation, because `{}` on a span never counts its escapes. This is the
+difference from `format!("{:<10}", "hi".red().to_string())`, which would pad
+the escaped string to the wrong visual width — use `pad` for pre-rendered
+strings.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Text tools" description="Every function with parameters, returns and edge cases." href="/reference/text-tools/" />
+
+---
+
+<!-- src/content/docs/reference/color-control.mdx -->
+# Color control
+
+The choice module controls whether printed output carries colors and what the
+terminal can display. Sources: `src/choice.rs`.
+
+## ColorChoice
+
+`pub enum ColorChoice { Auto, Always, Never }` — derives `Debug`, `Clone`,
+`Copy`, `Default`, `PartialEq`, `Eq`, `Hash`; the default is `Auto`.
+
+| Variant | Behavior when printing |
+| --- | --- |
+| `Auto` (default) | Inspect the environment, then stdout tty detection — decision cached |
+| `Always` | Always emit colors |
+| `Never` | Never emit colors |
+
+Only the print family honors the choice (`print`, `println`, `eprint`,
+`eprintln`, `try_*`, `write_to`). String rendering never does — see
+[Deterministic rendering](/explanation/rendering-model/).
+
+## Setting and reading the choice
+
+| Function | Signature | Notes |
+| --- | --- | --- |
+| `set_color_choice` | `pub fn set_color_choice(choice: ColorChoice)` | Stores the choice and invalidates the `Auto` cache |
+| `color_choice` | `pub fn color_choice() -> ColorChoice` | The current global choice |
+
+## is_color_enabled
+
+`pub fn is_color_enabled() -> bool` — whether colors should be emitted now.
+
+- With the `no-color` feature: always `false`.
+- `Always` → `true`; `Never` → `false`.
+- `Auto` → the environment decision, computed once and cached in an atomic
+  (`0` unknown, `1` false, `2` true); `set_color_choice` resets the cache.
+  The environment check treats empty or whitespace-only values as unset.
+
+The `Auto` checks, in order:
+
+1. `FORCE_COLOR` set to a non-empty value other than `0` forces colors on; `FORCE_COLOR=0` forces them off.
+2. `CLICOLOR_FORCE` set to a non-empty value other than `0` forces colors on.
+3. `NO_COLOR` set to a non-empty value disables colors.
+4. `CLICOLOR=0` disables colors.
+5. `TERM=dumb` disables colors.
+6. Otherwise colors are emitted only when stdout is a terminal.
+
+## supports_color_level
+
+`pub fn supports_color_level() -> Option<ColorLevel>` — the richest color mode
+the terminal can display exactly, or `None` when no colors should be emitted
+at all. Detection order:
+
+1. `FORCE_COLOR`: `0` → `None`, `1` → `Ansi16`, `2` → `Ansi256`, anything else → `TrueColor`
+2. `CLICOLOR_FORCE` (non-zero) → `Ansi16`
+3. `NO_COLOR` → `None`
+4. `CLICOLOR=0` → `None`
+5. `TERM=dumb` → `None`
+6. `COLORTERM` of `truecolor` or `24bit` → `TrueColor`
+7. `TERM` containing `256color` → `Ansi256`; `TERM` containing `direct` → `TrueColor`; any other `TERM` → `Ansi16`
+8. A tty stdout → `TrueColor`
+9. Otherwise `None`
+
+## ColorLevel
+
+`pub enum ColorLevel { Ansi16, Ansi256, TrueColor }` — derives `Debug`,
+`Clone`, `Copy`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`;
+the default is `Ansi16`. The `Ord` ordering runs from least to most capable.
+
+## Environment variables
+
+| Variable | Effect on enabling | Effect on capability |
+| --- | --- | --- |
+| `FORCE_COLOR` | `0` off; non-`0` on | `1` → Ansi16, `2` → Ansi256, `3`/other → TrueColor |
+| `CLICOLOR_FORCE` | non-`0` forces on | forces Ansi16 |
+| `NO_COLOR` | non-empty disables | disables |
+| `CLICOLOR` | `0` disables | disables |
+| `TERM` | `dumb` disables | `256color` → Ansi256, `direct` → TrueColor, other → Ansi16 |
+| `COLORTERM` | — | `truecolor`/`24bit` → TrueColor |
+
+`FORCE_COLOR` wins over `CLICOLOR_FORCE`; both win over `NO_COLOR`. Empty
+values count as unset everywhere.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Control colors at runtime" description="The task-oriented guide, including --color flag wiring." href="/guides/runtime-color-control/" />
+
+---
+
+<!-- src/content/docs/reference/color.mdx -->
+# Color
+
+`Color` is a `Copy` enum: `Color::Named(u8)` is a palette index into the
+256-color table, `Color::RGB(u8, u8, u8)` is a 24-bit color. It derives
+`Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`. Source: `src/color.rs`.
+
+## Constants and constructors
+
+The sixteen base palette entries, in index order:
+
+| Constant | Index | Constant | Index |
+| --- | --- | --- | --- |
+| `BLACK` | 0 | `BRIGHT_BLACK` | 8 |
+| `RED` | 1 | `BRIGHT_RED` | 9 |
+| `GREEN` | 2 | `BRIGHT_GREEN` | 10 |
+| `YELLOW` | 3 | `BRIGHT_YELLOW` | 11 |
+| `BLUE` | 4 | `BRIGHT_BLUE` | 12 |
+| `MAGENTA` | 5 | `BRIGHT_MAGENTA` | 13 |
+| `CYAN` | 6 | `BRIGHT_CYAN` | 14 |
+| `WHITE` | 7 | `BRIGHT_WHITE` | 15 |
+
+| Constructor | Signature | Notes |
+| --- | --- | --- |
+| `indexed` | `pub const fn indexed(index: u8) -> Self` | Same as `Color::Named(index)` |
+| `rgb` | `pub const fn rgb(red: u8, green: u8, blue: u8) -> Self` | 24-bit color |
+| `hex` | `pub const fn hex(value: u32) -> Self` | Packed `0xRRGGBB`; `hex(0x00FF7F)` is `RGB(0, 255, 127)` |
+
+## Parsing hex strings
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `from_hex_str` | `pub fn from_hex_str(input: &str) -> Result<Self, ParseColorError>` | Accepts `"#7c4dff"`, `"7c4dff"`, `"#f0a"` |
+| `FromStr` | `type Err = ParseColorError` | Delegates to `from_hex_str` |
+
+`ParseColorError` derives `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
+and implements `Error` + `Display`:
+
+| Variant | Display message |
+| --- | --- |
+| `InvalidLength` | `invalid color: expected 3 or 6 hex digits, optionally prefixed with '#'` |
+| `InvalidDigit(char)` | `invalid hex digit: '…'` |
+
+## SGR parameter accessors
+
+| Member | Signature | Output |
+| --- | --- | --- |
+| `fg_code` | `pub fn fg_code(&self) -> String` | `38;5;n` (palette) or `38;2;r;g;b` (RGB) |
+| `bg_code` | `pub fn bg_code(&self) -> String` | `48;5;n` or `48;2;r;g;b` |
+
+These allocate for convenience; the render machinery writes the same
+parameters into the formatter without an intermediate `String`.
+
+## Color math
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `rgb_value` | `pub fn rgb_value(&self) -> (u8, u8, u8)` | Concrete sRGB triple; palette entries resolved through the standard xterm palette |
+| `luminance` | `pub fn luminance(&self) -> f32` | WCAG sRGB relative luminance, `0.0` (black) to `1.0` (white) |
+| `readable_on` | `pub fn readable_on(&self) -> Color` | White when `luminance() <= 0.17832548`, else black — the WCAG 4.5:1 crossover |
+| `lerp` | `pub fn lerp(self, other: Self, t: f32) -> Self` | Linear interpolation in RGB space; `t` clamped, `t <= 0` yields `self`, `t >= 1` yields `other` |
+
+## Degradation
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `to_256` | `pub fn to_256(self) -> Self` | Nearest 256-palette entry: the 6×6×6 cube (levels `0, 95, 135, 175, 215, 255`) versus the 24-step grayscale ramp (232–255), whichever is closer |
+| `to_16` | `pub fn to_16(self) -> Self` | Nearest of the sixteen base colors, by squared RGB distance |
+| `degrade_to` | `pub fn degrade_to(self, level: ColorLevel) -> Self` | `TrueColor` → unchanged; `Ansi256` → RGB to `to_256`, palette unchanged; `Ansi16` → palette indices ≤ 15 unchanged, everything else to `to_16` |
+| `level` | `pub fn level(self) -> ColorLevel` | Minimum level for exact display: palette ≤ 15 → `Ansi16`, palette > 15 → `Ansi256`, RGB → `TrueColor` |
+
+## palette_rgb
+
+`pub fn palette_rgb(index: u8) -> (u8, u8, u8)` resolves any 256-palette
+index to its standard xterm RGB value: indices 0–15 use the base table,
+16–231 the 6×6×6 cube, 232–255 the grayscale ramp `8 + 10·(index − 232)`.
+
+## Trait impls
+
+| Impl | Result |
+| --- | --- |
+| `From<u8>` | `Color::Named(index)` |
+| `From<(u8, u8, u8)>` | `Color::RGB(r, g, b)` |
+| `FromStr` | Hex string parsing, same as `from_hex_str` |
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Degrade colors" description="The task-oriented guide to capability levels." href="/guides/degrade-colors/" />
+
+---
+
+<!-- src/content/docs/reference/decorations.mdx -->
+# Gradient and rainbow functions
+
+The decoration functions paint one [`Line`](/reference/line/) whose spans are
+the text's characters, each carrying its own interpolated color. All are
+`#[must_use]` and none allocate beyond the resulting line. Source:
+`src/decorate.rs`.
+
+## Function signatures
+
+| Function | Signature | Paints |
+| --- | --- | --- |
+| `gradient` | `pub fn gradient(text: &str, from: Color, to: Color) -> Line` | Foreground interpolation `from` → `to` |
+| `gradient_bg` | `pub fn gradient_bg(text: &str, from: Color, to: Color) -> Line` | Background interpolation |
+| `rainbow` | `pub fn rainbow(text: &str) -> Line` | Foreground cycling the full hue wheel |
+| `rainbow_bg` | `pub fn rainbow_bg(text: &str) -> Line` | Background cycling the full hue wheel |
+
+## Interpolation details
+
+- Every character is its own span; `line.spans()` has one entry per
+  character, whitespace included.
+- The interpolation parameter is `t = i / (count − 1)` for character `i`; a
+  single-character text uses `t = 0`.
+- `gradient` interpolates in RGB space through `Color::lerp`, so palette
+  indices interpolate in RGB too.
+- `rainbow` maps `t` through `hsv_to_rgb(t × 360, 1.0, 1.0)` — fully
+  saturated, full value, one hue per character.
+
+The result prints like any line: it honors
+[`ColorChoice`](/reference/color-control/) and degrades with
+`render_with(level)`.
+
+## hsv_to_rgb
+
+`pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8)` — the standard
+HSV → RGB conversion. `h` is in degrees (values outside `0..360` wrap via
+`rem_euclid`); `s` and `v` are in `0.0..=1.0`. Returns 8-bit components.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Add gradients, panels and hyperlinks" description="The task-oriented guide with worked examples." href="/guides/decorations/" />
+
+---
+
+<!-- src/content/docs/reference/line.mdx -->
+# Line
+
+`Line` is an ordered sequence of [`Span`](/reference/span/)s that renders as a
+single row. It derives `Debug`, `Clone`, `Default`, `PartialEq`, `Eq`, `Hash`.
+Source: `src/line.rs`.
+
+## Construction
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | Empty line |
+| `from_spans` | `pub fn from_spans(spans: impl IntoIterator<Item = Span>) -> Self` | From any span iterator |
+
+## Pushing and editing spans
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `push` | `pub fn push(self, span: impl Into<Span>) -> Self` | Appends; builder style |
+| `push_mut` | `pub fn push_mut(&mut self, span: impl Into<Span>)` | Appends in place |
+| `extend` | `pub fn extend(self, spans: impl IntoIterator<Item = Span>) -> Self` | Appends several |
+| `spans` | `pub fn spans(&self) -> &[Span]` | The pushed spans |
+| `visible_width` | `pub fn visible_width(&self) -> usize` | Total CJK-aware width |
+
+### The last-span rule
+
+The style methods below apply to the **last pushed span**. If the line is
+empty when one is called, an empty span is created first, so the call never
+panics — it restyles an invisible segment.
+
+| Group | Methods |
+| --- | --- |
+| Direct setters | `fg(Color)`, `bg(Color)`, `fg_rgb(u8, u8, u8)`, `bg_rgb(u8, u8, u8)`, `attr(Attribute)`, `effects(Effects)` |
+| Foreground | `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright_black`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white` |
+| Background | `on_black`, `on_red`, `on_green`, `on_yellow`, `on_blue`, `on_magenta`, `on_cyan`, `on_white`, `on_bright_black`, `on_bright_red`, `on_bright_green`, `on_bright_yellow`, `on_bright_blue`, `on_bright_magenta`, `on_bright_cyan`, `on_bright_white` |
+| Attributes | `bold`, `dim`, `italic`, `underline`, `blink`, `reverse`, `hidden`, `strikethrough` |
+
+## Whole-line operations
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `with_style` | `pub fn with_style(self, style: Style) -> Self` | Merges into **every** span; the merged style's colors win, attributes union |
+| `map_span` | `pub fn map_span(self, f: impl FnMut(Span) -> Span) -> Self` | Rewrites each span |
+| `when` | `pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self` | Conditional builder |
+
+## Rendering and printing
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Deterministic |
+| `render_with` | `pub fn render_with(&self, level: ColorLevel) -> String` | Degrades every span to `level` |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Honors `ColorChoice`; fallible |
+| `print` / `println` | stdout, without / with newline | Panics on failure |
+| `eprint` / `eprintln` | stderr, without / with newline | Panics on failure |
+| `try_print` / `try_println` | stdout, fallible | `io::Result<()>` |
+| `try_eprint` / `try_eprintln` | stderr, fallible | `io::Result<()>` |
+
+When printing with colors disabled, the plain concatenation of the spans'
+text is written — no escapes at all. `Display` renders like `render`; a
+format width pads by the line's total visible width, honoring the spec's fill
+and alignment.
+
+## Derives and trait impls
+
+| Impl | Behavior |
+| --- | --- |
+| `Default` | Empty line |
+| `From<&str>`, `From<String>` | One plain span |
+| `From<Span>` | One-span line |
+| `From<Vec<Span>>` | Direct |
+| `FromIterator<Span>` | `collect()` support |
+| `IntoIterator` | `Item = Span`, consumes the line |
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Compose status lines" description="The task-oriented guide to building rows." href="/guides/status-lines/" />
+
+---
+
+<!-- src/content/docs/reference/macros.mdx -->
+# Macros
+
+Three declarative macros build styled values in one expression. They are
+exported at the crate root (`#[macro_export]`). Source: `src/macros.rs`.
+
+## paint!
+
+`paint!(method+, format-args…) -> Span` — builds a
+[`Span`](/reference/span/) from `format!` arguments and a list of style
+method names:
+
+```rust
+use pretty_console::paint;
+
+let msg = paint!(green bold, "{} tests passed", 12);
+msg.println();
+```
+
+## style!
+
+`style!(method+) -> Style` — builds a [`Style`](/reference/style/) the same
+way:
+
+```rust
+use pretty_console::style;
+
+let danger = style!(bold red on_white);
+danger.paint("boom").println();
+```
+
+## line!
+
+`line!(span, …) -> Line` — builds a [`Line`](/reference/line/) by pushing
+each expression (spans or plain strings):
+
+```rust
+use pretty_console::line;
+
+let row = line!("cache ", "warm", " · 42 entries");
+row.println();
+```
+
+## Constraints
+
+- The method list accepts any no-argument `Span`/`Style` builder method name:
+  colors (`red`, `bright_blue`), backgrounds (`on_white`), attributes
+  (`bold`, `underline`).
+- Methods that take arguments — `fg_rgb`, `fg_hex`, `fg`, `bg`, `attr`,
+  `effects` — cannot appear in the list; use the regular builder chain for
+  those.
+- The methods are applied left to right; because attributes are idempotent
+  and colors overwrite, later names win.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Span" description="The builder methods the macros accept." href="/reference/span/" />
+
+---
+
+<!-- src/content/docs/reference/panel.mdx -->
+# Panel
+
+`Panel` renders a rounded box (`╭ ─ ╮ │ ╰ ─ ╯`) containing styled
+[`Line`](/reference/line/)s with an optional title inlaid into the top
+border. It derives `Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`, and `Default`
+equals `Panel::new()`. Source: `src/panel.rs`.
+
+## Builder methods and defaults
+
+| Method | Signature | Default | Notes |
+| --- | --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | — | Padding 1, plain border, no title, no fixed width |
+| `title` | `pub fn title(self, title: impl Into<String>) -> Self` | none | Inlaid as `─ Title` (title, one space, then dashes) into the top border; the title keeps its own style |
+| `line` | `pub fn line(self, line: impl Into<Line>) -> Self` | empty | Accepts a `Line`, a `Span`, or a plain string |
+| `lines` | `pub fn lines(self, lines: impl IntoIterator<Item = impl Into<Line>>) -> Self` | empty | Appends several at once |
+| `width` | `pub fn width(self, width: usize) -> Self` | none (auto) | Inner content width; see below |
+| `padding` | `pub fn padding(self, padding: usize) -> Self` | `1` | Horizontal padding on each side of the content |
+| `border` | `pub fn border(self, style: Style) -> Self` | plain | Styles the border characters and the title divider dashes |
+
+Content spans keep their own styles; only border and divider characters take
+the border style.
+
+## Width computation
+
+`content_width(&self) -> usize` returns the width between the vertical bars:
+
+- with an explicit width: `(width + 2 × padding)`, raised to fit the title;
+- without: `max(widest line) + 2 × padding`, raised to fit the title.
+
+The title minimum is `visible_width(title) + 2 × padding + 1`.
+
+With a fixed width, lines wider than the body are truncated with an ellipsis
+(`…`); without one, the box grows to the widest line.
+
+## Rendering
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Deterministic |
+| `render_plain` | `pub fn render_plain(&self) -> String` | All escapes stripped, for logs and tests |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Honors `ColorChoice`; fallible |
+| `print` | stdout | Panics on failure |
+| `println` | stdout + newline | Panics on failure |
+
+`Display` renders like `render`. Content lines are padded to the body width
+with `pad` using visible width, so CJK content keeps the border aligned.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Add gradients, panels and hyperlinks" description="The task-oriented guide, including fixed-width truncation." href="/guides/decorations/" />
+
+---
+
+<!-- src/content/docs/reference/span.mdx -->
+# Span
+
+`Span` is a styled string: text, a [`Style`](/reference/style/), and an
+optional OSC 8 hyperlink. It derives `Debug`, `Clone`, `Default`,
+`PartialEq`, `Eq`, `Hash`, and implements `Display` with visible-width
+padding. The v1 name `Console` survives as a type alias. Source:
+`src/span.rs`.
+
+## Constructors
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub fn new(text: impl Into<String>) -> Self` | Plain style, no link |
+| `new_with_style` | `pub fn new_with_style(text: impl Into<String>, style: Style) -> Self` | Pre-built style |
+| `with_style` | `pub fn with_style(text: impl Into<String>, style: Style) -> Self` | Alias of `new_with_style` |
+| `with_text` | `pub fn with_text(&self, text: impl Into<String>) -> Self` | Keeps style and link, replaces text |
+| `info` | `pub fn info(text: impl Into<String>) -> Self` | `[INFO]` prefix, cyan |
+| `warn` | `pub fn warn(text: impl Into<String>) -> Self` | `[WARN]` prefix, yellow |
+| `error` | `pub fn error(text: impl Into<String>) -> Self` | `[ERROR]` prefix, bold red |
+| `success` | `pub fn success(text: impl Into<String>) -> Self` | `[OK]` prefix, bold green |
+| `debug` | `pub fn debug(text: impl Into<String>) -> Self` | `[DEBUG]` prefix, dim |
+| `banner` | `pub fn banner(title: impl Into<String>, width: usize) -> Self` | Full-width centered banner, cyan bold |
+
+## Text and style accessors
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `text` | `pub fn text(&self) -> &str` | The unstyled text |
+| `set_text` | `pub fn set_text(&mut self, text: impl Into<String>)` | In-place replacement |
+| `style` | `pub const fn style(&self) -> &Style` | The held style |
+| `set_style` | `pub fn set_style(&mut self, style: Style)` | In-place replacement |
+| `styled_with` | `pub fn styled_with(self, style: Style) -> Self` | Builder form of `set_style` |
+
+## Style builder methods
+
+All builder methods consume `self` and return `Self`. Colors set the
+foreground (`fg*`) or background (`bg*`, `on_*`) of the held style; attribute
+methods insert into the style's [`Effects`](/reference/style/) bitset.
+
+| Group | Methods |
+| --- | --- |
+| Direct setters | `fg(Color)`, `bg(Color)`, `fg_rgb(u8, u8, u8)`, `bg_rgb(u8, u8, u8)`, `fg_hex(u32)`, `bg_hex(u32)`, `attr(Attribute)`, `effects(Effects)` |
+| Foreground | `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright_black`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white` |
+| Background | `on_black`, `on_red`, `on_green`, `on_yellow`, `on_blue`, `on_magenta`, `on_cyan`, `on_white`, `on_bright_black`, `on_bright_red`, `on_bright_green`, `on_bright_yellow`, `on_bright_blue`, `on_bright_magenta`, `on_bright_cyan`, `on_bright_white` |
+| Attributes | `bold`, `dim`, `italic`, `underline`, `blink`, `reverse`, `hidden`, `strikethrough` |
+| Conditional | `when(bool, impl FnOnce(Self) -> Self)` |
+
+## Level helpers
+
+The constructors `info`, `warn`, `error`, `success` and `debug` prefix the
+text with a tag and apply a fixed style:
+
+| Constructor | Tag | Style |
+| --- | --- | --- |
+| `info` | `[INFO]` | cyan |
+| `warn` | `[WARN]` | yellow |
+| `error` | `[ERROR]` | bold red |
+| `success` | `[OK]` | bold green |
+| `debug` | `[DEBUG]` | dim |
+
+## Banner
+
+`banner(title, width)` builds a horizontal rule with the centered title,
+styled cyan and bold. The rule character is `─`; the title width is measured
+with `chars().count()`. When `width` is too small to leave at least two
+dashes on each side (fewer than 4 dashes in total), the plain title styled
+cyan and bold is returned instead.
+
+## Hyperlinks
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `link` | `pub fn link(self, url: impl Into<Box<str>>) -> Self` | Attaches an OSC 8 URL |
+| `unlink` | `pub fn unlink(self) -> Self` | Removes any URL |
+| `url` | `pub fn url(&self) -> Option<&str>` | The current URL |
+
+A link renders as `ESC ]8;;URL ESC \` before the styled text and
+`ESC ]8;; ESC \` after it. Links are suppressed under the `no-color` feature
+and when printing with colors disabled.
+
+## Rendering
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Deterministic; never consults the environment |
+| `render_with` | `pub fn render_with(&self, level: ColorLevel) -> String` | Degrades colors to `level` first |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Honors `ColorChoice`; fallible |
+
+`Display` (and therefore `to_string`) renders like `render`. When a format
+width is present, padding is computed from the visible (CJK-aware) text
+width, honoring the spec's fill and alignment.
+
+## Printing
+
+All methods below write to stdout or stderr, honoring the global
+[`ColorChoice`](/reference/color-control/).
+
+| Method | Stream | Newline | Failure |
+| --- | --- | --- | --- |
+| `print` | stdout | no | panics |
+| `println` | stdout | yes | panics |
+| `eprint` | stderr | no | panics |
+| `eprintln` | stderr | yes | panics |
+| `try_print` | stdout | no | `io::Result<()>` |
+| `try_println` | stdout | yes | `io::Result<()>` |
+| `try_eprint` | stderr | no | `io::Result<()>` |
+| `try_eprintln` | stderr | yes | `io::Result<()>` |
+
+## The Styled extension trait
+
+`Styled` is implemented for every `T: AsRef<str> + ?Sized` and paints
+string-like values in place. `styled()` wraps the value in a plain
+`Span`; every other method forwards to the corresponding `Span` builder and
+returns a `Span`:
+
+```rust
+use pretty_console::Styled;
+
+let span = "hello".red().bold();
+```
+
+The trait carries `styled`, the sixteen foreground colors, the sixteen
+`on_*` backgrounds, and the eight attribute methods — the same names as the
+`Span` builder tables above.
+
+## Derives and trait impls
+
+| Impl | Behavior |
+| --- | --- |
+| `Default` | Empty text, plain style, no link |
+| `From<&str>`, `From<String>` | Same as `Span::new` |
+| `Display` | Render with visible-width padding |
+
+`Console` is `pub type Console = Span;`, kept for v1 compatibility.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Deterministic rendering" description="Why to_string never consults the environment." href="/explanation/rendering-model/" />
+
+---
+
+<!-- src/content/docs/reference/style.mdx -->
+# Style, Attribute and Effects
+
+`Style` bundles a foreground color, a background color and a set of text
+attributes. It is `Copy`, `const`-constructible, and never allocates.
+`Attribute` is the enum of the eight SGR attributes; `Effects` is the `u16`
+bitset that stores them. Sources: `src/style.rs`, `src/attr.rs`.
+
+## Style
+
+Derives `Debug`, `Clone`, `Copy`, `Default`, `PartialEq`, `Eq`, `Hash`.
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | No colors, no attributes |
+| `fg` | `pub const fn fg(self, color: Color) -> Self` | Sets foreground |
+| `bg` | `pub const fn bg(self, color: Color) -> Self` | Sets background |
+| `attr` | `pub const fn attr(self, attribute: Attribute) -> Self` | Inserts one attribute |
+| `effects` | `pub const fn effects(self, effects: Effects) -> Self` | Unions a set |
+| `foreground` | `pub const fn foreground(&self) -> Option<Color>` | Get foreground |
+| `background` | `pub const fn background(&self) -> Option<Color>` | Get background |
+| `attributes` | `pub const fn attributes(&self) -> Effects` | Get the bitset |
+| `is_plain` | `pub const fn is_plain(&self) -> bool` | No colors and no attributes |
+| `merge` | `pub const fn merge(self, other: Self) -> Self` | Colors of `other` win; attributes union |
+| `degraded` | `pub fn degraded(&self, level: ColorLevel) -> Self` | Reduces both colors to `level` |
+| `paint` | `pub fn paint(self, text: impl Into<String>) -> Span` | Produces a `Span` |
+| `to_ansi_start` | `pub fn to_ansi_start(&self) -> String` | The SGR start sequence; empty when plain |
+| `when` | `pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self` | Conditional builder |
+
+`Style` also carries the same builder method names as
+[`Span`](/reference/span/): sixteen foreground colors, sixteen `on_*`
+backgrounds, eight attribute methods — all `const fn`.
+
+### Merge semantics
+
+`self.merge(other)`:
+
+- foreground: `other`'s if set, otherwise `self`'s;
+- background: `other`'s if set, otherwise `self`'s;
+- attributes: the union of both sets — no duplicates can appear.
+
+### Trait impls
+
+| Impl | Result |
+| --- | --- |
+| `From<Color>` | `Style::new().fg(color)` |
+| `From<Effects>` | `Style::new().effects(effects)` |
+| `From<Attribute>` | `Style::new().attr(attribute)` |
+
+## Attribute
+
+Derives `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`.
+
+| Variant | SGR code | Meaning |
+| --- | --- | --- |
+| `Bold` | `1` | Bold or increased intensity |
+| `Dim` | `2` | Decreased intensity |
+| `Italic` | `3` | Italic |
+| `Underline` | `4` | Underlined |
+| `Blink` | `5` | Slow blink |
+| `Reverse` | `7` | Reverse video |
+| `Hidden` | `8` | Concealed |
+| `Strikethrough` | `9` | Strikethrough |
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `ALL` | `pub const ALL: [Attribute; 8]` | Canonical emission order |
+| `code` | `pub const fn code(self) -> &'static str` | The SGR parameter above |
+| `bit` | `pub const fn bit(self) -> u16` | Its bit inside `Effects` |
+| `bit_index` | `pub const fn bit_index(self) -> u16` | Position 0–7 |
+
+## Effects
+
+A compact `Copy` bitset over the eight attributes; derives `Debug`, `Clone`,
+`Copy`, `Default`, `PartialEq`, `Eq`, `Hash`. Adding an attribute is a single
+`or`, duplicates are impossible, and every operation is `const`.
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `EMPTY` | `pub const EMPTY: Self` | No attributes |
+| `BOLD` … `STRIKETHROUGH` | one `pub const` per attribute | Single-bit sets |
+| `ALL` | `pub const ALL: Self` | `0x00FF` |
+| `from_bits` | `pub const fn from_bits(bits: u16) -> Self` | Unknown bits masked off |
+| `bits` | `pub const fn bits(self) -> u16` | Raw bits |
+| `is_empty` | `pub const fn is_empty(self) -> bool` | No attribute set |
+| `contains` | `pub const fn contains(self, other: Self) -> bool` | Superset test |
+| `has` | `pub const fn has(self, attribute: Attribute) -> bool` | Single-attribute test |
+| `insert` | `pub const fn insert(self, attribute: Attribute) -> Self` | Adds one attribute |
+| `remove` | `pub const fn remove(self, attribute: Attribute) -> Self` | Removes one attribute |
+| `union` | `pub const fn union(self, other: Self) -> Self` | Bitwise or |
+| `without` | `pub const fn without(self, other: Self) -> Self` | Difference |
+| `attributes` | `pub fn attributes(self) -> EffectIter` | Iterator in canonical order |
+
+Operators: `BitOr`/`BitOrAssign` forward to `union`; `Sub` forwards to
+`without`. `Display` prints the set's SGR parameters joined with `;` — an
+empty set prints nothing.
+
+## EffectIter
+
+`EffectIter` is the iterator produced by `Effects::attributes`. It yields
+`Attribute` items in canonical emission order (bold → strikethrough) and
+implements `ExactSizeIterator`. It is `Copy` — a cursor over the bitset,
+cheaper to copy than to borrow.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="The zero-cost design" description="Why styles are Copy values and what the bitset buys." href="/explanation/zero-cost-design/" />
+
+---
+
+<!-- src/content/docs/reference/text-tools.mdx -->
+# Text tools
+
+The text utilities treat ANSI escape sequences as zero-width, skip zero-width
+characters and count wide characters as two columns, so measurements match
+what a terminal renders. They are dependency-free and use a practical
+approximation of the `unicode-width` reference tables. Source: `src/text.rs`.
+
+## strip_ansi
+
+`pub fn strip_ansi(input: &str) -> String` — removes escape sequences and
+returns the plain text.
+
+Recognized sequences:
+
+| Form | Grammar |
+| --- | --- |
+| CSI | `ESC [` + any number of parameter/intermediate bytes (`0x20..=0x3F`) + exactly one final byte |
+| OSC | `ESC ]` + payload until `BEL` (`0x07`) or `ESC \` (ST) |
+| Other | `ESC` plus exactly one following character |
+
+Truncated sequences at the end of the input are dropped.
+
+## char_width
+
+`pub fn char_width(c: char) -> usize` — the number of terminal columns one
+character occupies.
+
+| Range | Width |
+| --- | --- |
+| Control characters `0x00..=0x1F`, `0x7F` | 0 |
+| Combining diacritics and marks (e.g. `0x0300..=0x036F`, `0x0591..=0x05BD`, `0x20D0..=0x20F0`) | 0 |
+| Zero-width space, ZWNJ, ZWJ, directional marks (`0x200B..=0x200F`, `0x2060..=0x2064`, `0xFEFF`) | 0 |
+| Variation selectors (`0xFE00..=0xFE0F`, `0xE0100..=0xE01EF`) | 0 |
+| Hangul Jamo (`0x1100..=0x115F`) | 2 |
+| CJK radicals, punctuation, kana, ideographs (`0x2E80..=0x33FF`, `0x3400..=0x4DBF`, `0x4E00..=0x9FFF`) | 2 |
+| Yi, Hangul jamo and syllables (`0xA000..=0xA4CF`, `0xA960..=0xA97F`, `0xAC00..=0xD7A3`) | 2 |
+| CJK compatibility forms (`0xF900..=0xFAFF`, `0xFE10..=0xFE19`, `0xFE30..=0xFE6F`) | 2 |
+| Fullwidth forms (`0xFF00..=0xFF60`, `0xFFE0..=0xFFE6`) | 2 |
+| Emoji blocks (`0x1F300..=0x1F64F`, `0x1F900..=0x1F9FF`, `0x1FA70..=0x1FAFF`) | 2 |
+| CJK extensions B and C (`0x20000..=0x2FFFD`, `0x30000..=0x3FFFD`) | 2 |
+| Everything else | 1 |
+
+This is a documented approximation chosen to keep the crate dependency-free;
+it does not reach full parity with the `unicode-width` crate.
+
+## visible_width
+
+`pub fn visible_width(input: &str) -> usize` — the number of terminal columns
+`input` occupies.
+
+- If the input contains `ESC`, it is stripped first, then measured.
+- Pure-ASCII inputs count the printable bytes `0x20..=0x7E` (a fast path).
+- Otherwise the widths of the characters are summed.
+
+## truncate
+
+`pub fn truncate(input: &str, max_width: usize, tail: &str) -> String` — cuts
+to at most `max_width` visible columns, appending `tail` when truncation
+happens.
+
+| Behavior | Detail |
+| --- | --- |
+| Fits | Returned unchanged (a fresh `String`) |
+| Budget | Characters keep fitting while `width + char_width ≤ max_width − visible_width(tail)` |
+| Escapes | Preserved and zero-width; a reset (`ESC [0m`) is appended after the tail when any escape was emitted |
+| Undersized budget | When `max_width` is smaller than the tail, the tail overruns the requested width |
+
+## pad and Align
+
+`pub fn pad(input: &str, width: usize, align: Align, fill: char) -> String` —
+pads to exactly `width` visible columns.
+
+| Case | Result |
+| --- | --- |
+| Input wider than `width` | Returned unchanged — `pad` never truncates |
+| `Align::Left` (default) | Fill appended on the right |
+| `Align::Center` | Split, the odd column on the right |
+| `Align::Right` | Fill prepended on the left |
+
+`Align` derives `Debug`, `Clone`, `Copy`, `Default`, `PartialEq`, `Eq`,
+`Hash`; `Default` is `Left`.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Measure, truncate and pad text" description="The task-oriented guide with layout recipes." href="/guides/text-layout/" />
+
+---
+
+<!-- src/content/docs/tutorials/getting-started.mdx -->
+# Getting started
+
+import { LinkCard, Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components';
+
+This tutorial takes you from an empty directory to a running program that
+prints styled spans and a multi-segment line. You will see visible results at
+every step. The whole tutorial uses one path with no alternatives.
+
+## Prerequisites
+
+- The Rust toolchain, version 1.85 or newer (`rustc --version` to confirm).
+- A terminal.
+
+## What you will build
+
+A tiny program that prints:
+
+1. one styled span — bold red text,
+2. one styled string literal — cyan, written in place,
+3. one multi-segment line — dim label, bold command, green duration.
+
+## Build and run
+
+<Steps>
+
+1. **Create a project.** In your terminal, create a new Rust project and move
+   into it:
+
+   ```sh
+   cargo new pretty-demo
+   cd pretty-demo
+   ```
+
+2. **Add the crate.**
+
+   <Tabs>
+     <TabItem label="cargo add">
+
+   ```sh
+   cargo add pretty-console
+   ```
+
+     </TabItem>
+     <TabItem label="Cargo.toml">
+
+   Add the dependency to the `[dependencies]` section of `Cargo.toml`:
+
+   ```toml
+   [dependencies]
+   pretty-console = "2.0.0"
+   ```
+
+     </TabItem>
+   </Tabs>
+
+   You should now see `Adding pretty-console v2.0.0` (or a newer patch) in the
+   output.
+
+3. **Style a single span.** Open `src/main.rs` and replace its contents with:
+
+   ```rust
+   use pretty_console::{Span, Styled};
+
+   fn main() {
+       Span::new("Hello, world!").red().bold().println();
+   }
+   ```
+
+   Every builder call — `.red()`, `.bold()` — returns the span again, so calls
+   chain left to right. `.println()` writes the result to stdout. Run it:
+
+   ```sh
+   cargo run
+   ```
+
+   You should now see **Hello, world!** printed in bold red.
+
+   <Aside type="note">
+     If your terminal does not support colors (for example in some CI logs),
+     the same text appears without escapes — printing detects that case for
+     you.
+   </Aside>
+
+4. **Style a literal in place.** The `Styled` trait paints string literals
+   directly, without constructing a `Span` by hand. Add a second line to
+   `main`:
+
+   ```rust
+   use pretty_console::{Span, Styled};
+
+   fn main() {
+       Span::new("Hello, world!").red().bold().println();
+       println!("{}", "Ready to go".cyan());
+   }
+   ```
+
+   Run it again:
+
+   ```sh
+   cargo run
+   ```
+
+   You should now see both lines: the bold red greeting, then **Ready to go**
+   in cyan.
+
+5. **Compose a multi-segment line.** Real CLIs print rows where each segment
+   carries its own style. `Line` joins spans into one row, and its styling
+   methods apply to the segment you pushed last:
+
+   ```rust
+   use pretty_console::{Line, Span, Styled};
+
+   fn main() {
+       Span::new("Hello, world!").red().bold().println();
+       println!("{}", "Ready to go".cyan());
+
+       Line::new()
+           .push("  build ").dim()
+           .push("cargo build --release").bold()
+           .push(" finished in ").push("4.2s").green()
+           .println();
+   }
+   ```
+
+   The third line reads left to right: a dim label, a bold command, a plain
+   connector, and a green duration — because `.green()` styles the last pushed
+   segment, `"4.2s"`. Run the final version:
+
+   ```sh
+   cargo run
+   ```
+
+   You should now see three rows:
+
+   - **Hello, world!** — bold red
+   - **Ready to go** — cyan
+   - `build cargo build --release finished in 4.2s` — preceded by two spaces,
+     with the label dimmed, the command bold, and `4.2s` green
+
+</Steps>
+
+## Where to go next
+
+You have the core workflow. The pages below take the next step in each
+direction.
+
+<LinkCard title="Reuse and merge styles" description="Define a style once and apply it to many strings." href="/guides/reusable-styles/" />
+

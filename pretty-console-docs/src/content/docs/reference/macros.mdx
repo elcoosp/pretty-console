@@ -1,0 +1,62 @@
+---
+title: Macros
+description: paint!, style! and line! — one-shot styling without hand-written builders.
+type: reference
+---
+
+Three declarative macros build styled values in one expression. They are
+exported at the crate root (`#[macro_export]`). Source: `src/macros.rs`.
+
+## paint!
+
+`paint!(method+, format-args…) -> Span` — builds a
+[`Span`](/reference/span/) from `format!` arguments and a list of style
+method names:
+
+```rust
+use pretty_console::paint;
+
+let msg = paint!(green bold, "{} tests passed", 12);
+msg.println();
+```
+
+## style!
+
+`style!(method+) -> Style` — builds a [`Style`](/reference/style/) the same
+way:
+
+```rust
+use pretty_console::style;
+
+let danger = style!(bold red on_white);
+danger.paint("boom").println();
+```
+
+## line!
+
+`line!(span, …) -> Line` — builds a [`Line`](/reference/line/) by pushing
+each expression (spans or plain strings):
+
+```rust
+use pretty_console::line;
+
+let row = line!("cache ", "warm", " · 42 entries");
+row.println();
+```
+
+## Constraints
+
+- The method list accepts any no-argument `Span`/`Style` builder method name:
+  colors (`red`, `bright_blue`), backgrounds (`on_white`), attributes
+  (`bold`, `underline`).
+- Methods that take arguments — `fg_rgb`, `fg_hex`, `fg`, `bg`, `attr`,
+  `effects` — cannot appear in the list; use the regular builder chain for
+  those.
+- The methods are applied left to right; because attributes are idempotent
+  and colors overwrite, later names win.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Span" description="The builder methods the macros accept." href="/reference/span/" />

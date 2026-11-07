@@ -1,0 +1,46 @@
+---
+title: Gradient and rainbow functions
+description: Per-character color interpolation — gradient, gradient_bg, rainbow, rainbow_bg and hsv_to_rgb.
+type: reference
+---
+
+The decoration functions paint one [`Line`](/reference/line/) whose spans are
+the text's characters, each carrying its own interpolated color. All are
+`#[must_use]` and none allocate beyond the resulting line. Source:
+`src/decorate.rs`.
+
+## Function signatures
+
+| Function | Signature | Paints |
+| --- | --- | --- |
+| `gradient` | `pub fn gradient(text: &str, from: Color, to: Color) -> Line` | Foreground interpolation `from` → `to` |
+| `gradient_bg` | `pub fn gradient_bg(text: &str, from: Color, to: Color) -> Line` | Background interpolation |
+| `rainbow` | `pub fn rainbow(text: &str) -> Line` | Foreground cycling the full hue wheel |
+| `rainbow_bg` | `pub fn rainbow_bg(text: &str) -> Line` | Background cycling the full hue wheel |
+
+## Interpolation details
+
+- Every character is its own span; `line.spans()` has one entry per
+  character, whitespace included.
+- The interpolation parameter is `t = i / (count − 1)` for character `i`; a
+  single-character text uses `t = 0`.
+- `gradient` interpolates in RGB space through `Color::lerp`, so palette
+  indices interpolate in RGB too.
+- `rainbow` maps `t` through `hsv_to_rgb(t × 360, 1.0, 1.0)` — fully
+  saturated, full value, one hue per character.
+
+The result prints like any line: it honors
+[`ColorChoice`](/reference/color-control/) and degrades with
+`render_with(level)`.
+
+## hsv_to_rgb
+
+`pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8)` — the standard
+HSV → RGB conversion. `h` is in degrees (values outside `0..360` wrap via
+`rem_euclid`); `s` and `v` are in `0.0..=1.0`. Returns 8-bit components.
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Add gradients, panels and hyperlinks" description="The task-oriented guide with worked examples." href="/guides/decorations/" />

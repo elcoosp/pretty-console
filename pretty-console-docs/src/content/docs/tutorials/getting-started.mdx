@@ -1,0 +1,151 @@
+---
+title: Getting started
+description: Install pretty-console in a fresh Rust project and print styled spans and a multi-segment line.
+type: tutorial
+---
+
+import { LinkCard, Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components';
+
+This tutorial takes you from an empty directory to a running program that
+prints styled spans and a multi-segment line. You will see visible results at
+every step. The whole tutorial uses one path with no alternatives.
+
+## Prerequisites
+
+- The Rust toolchain, version 1.85 or newer (`rustc --version` to confirm).
+- A terminal.
+
+## What you will build
+
+A tiny program that prints:
+
+1. one styled span — bold red text,
+2. one styled string literal — cyan, written in place,
+3. one multi-segment line — dim label, bold command, green duration.
+
+## Build and run
+
+<Steps>
+
+1. **Create a project.** In your terminal, create a new Rust project and move
+   into it:
+
+   ```sh
+   cargo new pretty-demo
+   cd pretty-demo
+   ```
+
+2. **Add the crate.**
+
+   <Tabs>
+     <TabItem label="cargo add">
+
+   ```sh
+   cargo add pretty-console
+   ```
+
+     </TabItem>
+     <TabItem label="Cargo.toml">
+
+   Add the dependency to the `[dependencies]` section of `Cargo.toml`:
+
+   ```toml
+   [dependencies]
+   pretty-console = "2.0.0"
+   ```
+
+     </TabItem>
+   </Tabs>
+
+   You should now see `Adding pretty-console v2.0.0` (or a newer patch) in the
+   output.
+
+3. **Style a single span.** Open `src/main.rs` and replace its contents with:
+
+   ```rust
+   use pretty_console::{Span, Styled};
+
+   fn main() {
+       Span::new("Hello, world!").red().bold().println();
+   }
+   ```
+
+   Every builder call — `.red()`, `.bold()` — returns the span again, so calls
+   chain left to right. `.println()` writes the result to stdout. Run it:
+
+   ```sh
+   cargo run
+   ```
+
+   You should now see **Hello, world!** printed in bold red.
+
+   <Aside type="note">
+     If your terminal does not support colors (for example in some CI logs),
+     the same text appears without escapes — printing detects that case for
+     you.
+   </Aside>
+
+4. **Style a literal in place.** The `Styled` trait paints string literals
+   directly, without constructing a `Span` by hand. Add a second line to
+   `main`:
+
+   ```rust
+   use pretty_console::{Span, Styled};
+
+   fn main() {
+       Span::new("Hello, world!").red().bold().println();
+       println!("{}", "Ready to go".cyan());
+   }
+   ```
+
+   Run it again:
+
+   ```sh
+   cargo run
+   ```
+
+   You should now see both lines: the bold red greeting, then **Ready to go**
+   in cyan.
+
+5. **Compose a multi-segment line.** Real CLIs print rows where each segment
+   carries its own style. `Line` joins spans into one row, and its styling
+   methods apply to the segment you pushed last:
+
+   ```rust
+   use pretty_console::{Line, Span, Styled};
+
+   fn main() {
+       Span::new("Hello, world!").red().bold().println();
+       println!("{}", "Ready to go".cyan());
+
+       Line::new()
+           .push("  build ").dim()
+           .push("cargo build --release").bold()
+           .push(" finished in ").push("4.2s").green()
+           .println();
+   }
+   ```
+
+   The third line reads left to right: a dim label, a bold command, a plain
+   connector, and a green duration — because `.green()` styles the last pushed
+   segment, `"4.2s"`. Run the final version:
+
+   ```sh
+   cargo run
+   ```
+
+   You should now see three rows:
+
+   - **Hello, world!** — bold red
+   - **Ready to go** — cyan
+   - `build cargo build --release finished in 4.2s` — preceded by two spaces,
+     with the label dimmed, the command bold, and `4.2s` green
+
+</Steps>
+
+## Where to go next
+
+You have the core workflow. The pages below take the next step in each
+direction.
+
+<LinkCard title="Reuse and merge styles" description="Define a style once and apply it to many strings." href="/guides/reusable-styles/" />

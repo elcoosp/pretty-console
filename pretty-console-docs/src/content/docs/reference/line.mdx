@@ -1,0 +1,81 @@
+---
+title: Line
+description: Ordered spans that render as one row — the last-span styling rule, whole-line operations, rendering and printing.
+type: reference
+---
+
+`Line` is an ordered sequence of [`Span`](/reference/span/)s that renders as a
+single row. It derives `Debug`, `Clone`, `Default`, `PartialEq`, `Eq`, `Hash`.
+Source: `src/line.rs`.
+
+## Construction
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | Empty line |
+| `from_spans` | `pub fn from_spans(spans: impl IntoIterator<Item = Span>) -> Self` | From any span iterator |
+
+## Pushing and editing spans
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `push` | `pub fn push(self, span: impl Into<Span>) -> Self` | Appends; builder style |
+| `push_mut` | `pub fn push_mut(&mut self, span: impl Into<Span>)` | Appends in place |
+| `extend` | `pub fn extend(self, spans: impl IntoIterator<Item = Span>) -> Self` | Appends several |
+| `spans` | `pub fn spans(&self) -> &[Span]` | The pushed spans |
+| `visible_width` | `pub fn visible_width(&self) -> usize` | Total CJK-aware width |
+
+### The last-span rule
+
+The style methods below apply to the **last pushed span**. If the line is
+empty when one is called, an empty span is created first, so the call never
+panics — it restyles an invisible segment.
+
+| Group | Methods |
+| --- | --- |
+| Direct setters | `fg(Color)`, `bg(Color)`, `fg_rgb(u8, u8, u8)`, `bg_rgb(u8, u8, u8)`, `attr(Attribute)`, `effects(Effects)` |
+| Foreground | `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright_black`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white` |
+| Background | `on_black`, `on_red`, `on_green`, `on_yellow`, `on_blue`, `on_magenta`, `on_cyan`, `on_white`, `on_bright_black`, `on_bright_red`, `on_bright_green`, `on_bright_yellow`, `on_bright_blue`, `on_bright_magenta`, `on_bright_cyan`, `on_bright_white` |
+| Attributes | `bold`, `dim`, `italic`, `underline`, `blink`, `reverse`, `hidden`, `strikethrough` |
+
+## Whole-line operations
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `with_style` | `pub fn with_style(self, style: Style) -> Self` | Merges into **every** span; the merged style's colors win, attributes union |
+| `map_span` | `pub fn map_span(self, f: impl FnMut(Span) -> Span) -> Self` | Rewrites each span |
+| `when` | `pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self` | Conditional builder |
+
+## Rendering and printing
+
+| Method | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Deterministic |
+| `render_with` | `pub fn render_with(&self, level: ColorLevel) -> String` | Degrades every span to `level` |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Honors `ColorChoice`; fallible |
+| `print` / `println` | stdout, without / with newline | Panics on failure |
+| `eprint` / `eprintln` | stderr, without / with newline | Panics on failure |
+| `try_print` / `try_println` | stdout, fallible | `io::Result<()>` |
+| `try_eprint` / `try_eprintln` | stderr, fallible | `io::Result<()>` |
+
+When printing with colors disabled, the plain concatenation of the spans'
+text is written — no escapes at all. `Display` renders like `render`; a
+format width pads by the line's total visible width, honoring the spec's fill
+and alignment.
+
+## Derives and trait impls
+
+| Impl | Behavior |
+| --- | --- |
+| `Default` | Empty line |
+| `From<&str>`, `From<String>` | One plain span |
+| `From<Span>` | One-span line |
+| `From<Vec<Span>>` | Direct |
+| `FromIterator<Span>` | `collect()` support |
+| `IntoIterator` | `Item = Span`, consumes the line |
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Compose status lines" description="The task-oriented guide to building rows." href="/guides/status-lines/" />

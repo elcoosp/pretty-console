@@ -1,0 +1,26 @@
+# pretty-console — the fluent, zero-cost terminal styling toolkit for Rust.
+
+Diátaxis-structured documentation: tutorials, how-to guides, reference and explanation.
+
+- [pretty-console](/): The fluent, zero-cost terminal styling toolkit for Rust.
+- [How v2 came to be](/explanation/design-history/): The v1 audit findings, the decisions that shaped the 2.0 rewrite, and the deliberate non-goals.
+- [Deterministic rendering](/explanation/rendering-model/): Why to_string and Display never consult the environment while the print family does — and what canonical ordering buys you.
+- [The zero-cost design](/explanation/zero-cost-design/): How pretty-console renders styled output without heap allocation, intermediate strings or repeated syscalls.
+- [Add gradients, panels and hyperlinks](/guides/decorations/): Paint gradient and rainbow text, frame output in a rounded panel, and emit OSC 8 hyperlinks.
+- [Degrade colors](/guides/degrade-colors/): Detect the terminal's color capability and render truecolor content as 256-color or 16-color output.
+- [Use exact colors](/guides/exact-colors/): Apply packed hex values, parse hex strings from config, and pick readable foregrounds with WCAG contrast.
+- [Migrate from 1.x](/guides/migrate-from-v1/): Move a pretty-console 1.x codebase to 2.0 — what keeps compiling, what breaks, and what to update.
+- [Reuse and merge styles](/guides/reusable-styles/): Define a Style once, apply it to many strings, and merge styles with predictable precedence.
+- [Control colors at runtime](/guides/runtime-color-control/): Honor NO_COLOR and friends, wire a --color flag, and print to stderr without panicking.
+- [Compose status lines](/guides/status-lines/): Build one terminal row from differently styled segments with Line, and align it with format widths.
+- [Measure, truncate and pad text](/guides/text-layout/): Measure visible width (ANSI- and CJK-aware), truncate with an ellipsis, and pad columns that line up.
+- [Color control](/reference/color-control/): ColorChoice, ColorLevel, the cached enable decision and the exact environment-variable precedence.
+- [Color](/reference/color/): Palette indices and 24-bit RGB colors — constructors, hex parsing, SGR codes, luminance, contrast and degradation.
+- [Gradient and rainbow functions](/reference/decorations/): Per-character color interpolation — gradient, gradient_bg, rainbow, rainbow_bg and hsv_to_rgb.
+- [Line](/reference/line/): Ordered spans that render as one row — the last-span styling rule, whole-line operations, rendering and printing.
+- [Macros](/reference/macros/): paint!, style! and line! — one-shot styling without hand-written builders.
+- [Panel](/reference/panel/): Rounded, bordered boxes with an inlaid title — builder methods, defaults and the width computation.
+- [Span](/reference/span/): The styled-string core — constructors, style builders, level helpers, hyperlinks, rendering and printing.
+- [Style, Attribute and Effects](/reference/style/): Reusable Copy styles, the eight text attributes with their SGR codes, and the Effects bitset.
+- [Text tools](/reference/text-tools/): ANSI-aware strip_ansi, char_width, visible_width, truncate and pad, with the escape grammar and width ranges.
+- [Getting started](/tutorials/getting-started/): Install pretty-console in a fresh Rust project and print styled spans and a multi-segment line.

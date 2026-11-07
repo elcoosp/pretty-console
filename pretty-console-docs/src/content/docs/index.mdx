@@ -1,0 +1,30 @@
+---
+title: pretty-console
+description: The fluent, zero-cost terminal styling toolkit for Rust.
+template: splash
+hero:
+  title: pretty-console
+  tagline: The fluent, zero-cost terminal styling toolkit for Rust — spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools, with zero dependencies.
+  image:
+    file: ../../assets/logo.png
+    alt: pretty-console logo
+  actions:
+    - text: Get started
+      link: /tutorials/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/elcoosp/pretty-console
+      icon: external
+      variant: minimal
+---
+
+import { LinkCard, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard title="Tutorials" description="Learn by building: install the crate and print your first styled lines." href="/tutorials/getting-started/" />
+  <LinkCard title="How-to guides" description="Solve a specific problem: reusable styles, status lines, degradation, panels and more." href="/guides/reusable-styles/" />
+  <LinkCard title="Reference" description="Look up any Span, Style, Color, Line, Panel or macro member precisely." href="/reference/span/" />
+  <LinkCard title="Explanation" description="Understand the zero-cost design, the rendering model and why v2 exists." href="/explanation/zero-cost-design/" />
+</CardGrid>
+
+Rust 1.85+ · Edition 2024 · Zero dependencies · `#![forbid(unsafe_code)]` · [crates.io](https://crates.io/crates/pretty-console) · [docs.rs](https://docs.rs/pretty_console)

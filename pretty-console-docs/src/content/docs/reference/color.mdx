@@ -1,0 +1,93 @@
+---
+title: Color
+description: Palette indices and 24-bit RGB colors — constructors, hex parsing, SGR codes, luminance, contrast and degradation.
+type: reference
+---
+
+`Color` is a `Copy` enum: `Color::Named(u8)` is a palette index into the
+256-color table, `Color::RGB(u8, u8, u8)` is a 24-bit color. It derives
+`Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`. Source: `src/color.rs`.
+
+## Constants and constructors
+
+The sixteen base palette entries, in index order:
+
+| Constant | Index | Constant | Index |
+| --- | --- | --- | --- |
+| `BLACK` | 0 | `BRIGHT_BLACK` | 8 |
+| `RED` | 1 | `BRIGHT_RED` | 9 |
+| `GREEN` | 2 | `BRIGHT_GREEN` | 10 |
+| `YELLOW` | 3 | `BRIGHT_YELLOW` | 11 |
+| `BLUE` | 4 | `BRIGHT_BLUE` | 12 |
+| `MAGENTA` | 5 | `BRIGHT_MAGENTA` | 13 |
+| `CYAN` | 6 | `BRIGHT_CYAN` | 14 |
+| `WHITE` | 7 | `BRIGHT_WHITE` | 15 |
+
+| Constructor | Signature | Notes |
+| --- | --- | --- |
+| `indexed` | `pub const fn indexed(index: u8) -> Self` | Same as `Color::Named(index)` |
+| `rgb` | `pub const fn rgb(red: u8, green: u8, blue: u8) -> Self` | 24-bit color |
+| `hex` | `pub const fn hex(value: u32) -> Self` | Packed `0xRRGGBB`; `hex(0x00FF7F)` is `RGB(0, 255, 127)` |
+
+## Parsing hex strings
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `from_hex_str` | `pub fn from_hex_str(input: &str) -> Result<Self, ParseColorError>` | Accepts `"#7c4dff"`, `"7c4dff"`, `"#f0a"` |
+| `FromStr` | `type Err = ParseColorError` | Delegates to `from_hex_str` |
+
+`ParseColorError` derives `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
+and implements `Error` + `Display`:
+
+| Variant | Display message |
+| --- | --- |
+| `InvalidLength` | `invalid color: expected 3 or 6 hex digits, optionally prefixed with '#'` |
+| `InvalidDigit(char)` | `invalid hex digit: '…'` |
+
+## SGR parameter accessors
+
+| Member | Signature | Output |
+| --- | --- | --- |
+| `fg_code` | `pub fn fg_code(&self) -> String` | `38;5;n` (palette) or `38;2;r;g;b` (RGB) |
+| `bg_code` | `pub fn bg_code(&self) -> String` | `48;5;n` or `48;2;r;g;b` |
+
+These allocate for convenience; the render machinery writes the same
+parameters into the formatter without an intermediate `String`.
+
+## Color math
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `rgb_value` | `pub fn rgb_value(&self) -> (u8, u8, u8)` | Concrete sRGB triple; palette entries resolved through the standard xterm palette |
+| `luminance` | `pub fn luminance(&self) -> f32` | WCAG sRGB relative luminance, `0.0` (black) to `1.0` (white) |
+| `readable_on` | `pub fn readable_on(&self) -> Color` | White when `luminance() <= 0.17832548`, else black — the WCAG 4.5:1 crossover |
+| `lerp` | `pub fn lerp(self, other: Self, t: f32) -> Self` | Linear interpolation in RGB space; `t` clamped, `t <= 0` yields `self`, `t >= 1` yields `other` |
+
+## Degradation
+
+| Member | Signature | Notes |
+| --- | --- | --- |
+| `to_256` | `pub fn to_256(self) -> Self` | Nearest 256-palette entry: the 6×6×6 cube (levels `0, 95, 135, 175, 215, 255`) versus the 24-step grayscale ramp (232–255), whichever is closer |
+| `to_16` | `pub fn to_16(self) -> Self` | Nearest of the sixteen base colors, by squared RGB distance |
+| `degrade_to` | `pub fn degrade_to(self, level: ColorLevel) -> Self` | `TrueColor` → unchanged; `Ansi256` → RGB to `to_256`, palette unchanged; `Ansi16` → palette indices ≤ 15 unchanged, everything else to `to_16` |
+| `level` | `pub fn level(self) -> ColorLevel` | Minimum level for exact display: palette ≤ 15 → `Ansi16`, palette > 15 → `Ansi256`, RGB → `TrueColor` |
+
+## palette_rgb
+
+`pub fn palette_rgb(index: u8) -> (u8, u8, u8)` resolves any 256-palette
+index to its standard xterm RGB value: indices 0–15 use the base table,
+16–231 the 6×6×6 cube, 232–255 the grayscale ramp `8 + 10·(index − 232)`.
+
+## Trait impls
+
+| Impl | Result |
+| --- | --- |
+| `From<u8>` | `Color::Named(index)` |
+| `From<(u8, u8, u8)>` | `Color::RGB(r, g, b)` |
+| `FromStr` | Hex string parsing, same as `from_hex_str` |
+
+## Next steps
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Degrade colors" description="The task-oriented guide to capability levels." href="/guides/degrade-colors/" />
