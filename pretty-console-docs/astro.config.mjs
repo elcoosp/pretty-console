@@ -1,59 +1,42 @@
-// @ts-check
-import { defineConfig } from 'astro/config';
-import starlight from '@astrojs/starlight';
-import astroTakumi from 'astro-takumi';
-import fs from 'node:fs';
-import { makeRender } from './src/og-render.mjs';
+import { defineDocsConfig } from '@elcoosp/docs-toolkit/config';
 import starlightLinksValidator from 'starlight-links-validator';
 
-const __logoB64 = fs.readFileSync("./src/assets/logo.png").toString("base64");
-const __render = makeRender({
-  logoDataUrl: "data:image/png;base64," + __logoB64,
-  accentHex: "#3e3e74",
-  accentHexA12: "#3e3e741a",
-  domain: "pretty-console.vercel.app",
-  projectName: "pretty-console",
-});
 
-export default defineConfig({
-	vite: {
-		ssr: { external: ["jsdom", "astro-takumi"] },
-	},
+export default await defineDocsConfig({
   site: 'https://pretty-console.vercel.app',
-        integrations: [
-                starlight({
-			routeMiddleware: "./src/routeData.ts",
+  domain: 'pretty-console.vercel.app',
+  title: "pretty-console",
+  description: "The fluent, zero-cost terminal styling toolkit for Rust: spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools.",
+  sidebar: [],
+  extraStarlight: {
                         expressiveCode: {
-                        	themes: ['github-light', 'github-dark'],
+                        	themes: ['github-light', 'github-dark']
                         },
                         title: 'pretty-console',
                         description:
                                 'The fluent, zero-cost terminal styling toolkit for Rust: spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools.',
-
-                        logo: { src: './src/assets/logo.png' },
                         favicon: '/favicon.png',
-                        customCss: ['./src/styles/custom.css'],
                         social: [
                                 {
                                         icon: 'github',
                                         label: 'GitHub',
-                                        href: 'https://github.com/elcoosp/pretty-console',
+                                        href: 'https://github.com/elcoosp/pretty-console'
                                 },
                         ],
                         editLink: {
                                 baseUrl:
-                                        'https://github.com/elcoosp/pretty-console/edit/main/docs-site/src/content/docs/',
+                                        'https://github.com/elcoosp/pretty-console/edit/main/docs-site/src/content/docs/'
                         },
                         locales: {
                                 root: {
                                         label: 'English',
-                                        lang: 'en',
-                                },
+                                        lang: 'en'
+                                }
                         },
                         sidebar: [
                                 {
                                         label: 'Tutorials',
-                                        items: [{ label: 'Getting started', slug: 'tutorials/getting-started' }],
+                                        items: [{ label: 'Getting started', slug: 'tutorials/getting-started' }]
                                 },
                                 {
                                         label: 'How-to guides',
@@ -66,7 +49,7 @@ export default defineConfig({
                                                 { label: 'Add gradients, panels and hyperlinks', slug: 'guides/decorations' },
                                                 { label: 'Measure, truncate and pad text', slug: 'guides/text-layout' },
                                                 { label: 'Migrate from 1.x', slug: 'guides/migrate-from-v1' },
-                                        ],
+                                        ]
                                 },
                                 {
                                         label: 'Reference',
@@ -80,7 +63,7 @@ export default defineConfig({
                                                 { label: 'Text tools', slug: 'reference/text-tools' },
                                                 { label: 'Color control', slug: 'reference/color-control' },
                                                 { label: 'Macros', slug: 'reference/macros' },
-                                        ],
+                                        ]
                                 },
                                 {
                                         label: 'Explanation',
@@ -88,21 +71,9 @@ export default defineConfig({
                                                 { label: 'The zero-cost design', slug: 'explanation/zero-cost-design' },
                                                 { label: 'Deterministic rendering', slug: 'explanation/rendering-model' },
                                                 { label: 'How v2 came to be', slug: 'explanation/design-history' },
-                                        ],
+                                        ]
                                 },
                         ],
-                        plugins: [starlightLinksValidator()],
-                }),
-        
-		astroTakumi({
-			options: {
-				domBackend: "linkedom",
-				fonts: [fs.readFileSync("./node_modules/@fontsource/roboto/files/roboto-latin-400-normal.woff2")],
-				width: 1200,
-				height: 630,
-				format: "png",
-			},
-			render: __render,
-		}),
-	],
+                        plugins: [starlightLinksValidator()]
+                },
 });
