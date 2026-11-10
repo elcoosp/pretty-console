@@ -1,17 +1,36 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import astroTakumi from 'astro-takumi';
+import fs from 'node:fs';
+import { makeRender } from './src/og-render.mjs';
 import starlightLinksValidator from 'starlight-links-validator';
 
+const __logoB64 = fs.readFileSync("./src/assets/logo.png").toString("base64");
+const __render = makeRender({
+  logoDataUrl: "data:image/png;base64," + __logoB64,
+  accentHex: "#3e3e74",
+  accentHexA12: "#3e3e741a",
+  domain: "pretty-console.vercel.app",
+  projectName: "pretty-console",
+});
+
 export default defineConfig({
+	vite: {
+		ssr: { external: ["jsdom", "astro-takumi"] },
+	},
+  site: 'https://pretty-console.vercel.app',
         integrations: [
                 starlight({
+			routeMiddleware: "./src/routeData.ts",
+                        expressiveCode: {
+                        	themes: ['github-light', 'github-dark'],
+                        },
                         title: 'pretty-console',
                         description:
                                 'The fluent, zero-cost terminal styling toolkit for Rust: spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools.',
-                        logo: {
-                                src: './src/assets/logo.png',
-                        },
+
+                        logo: { src: './src/assets/logo.png' },
                         favicon: '/favicon.png',
                         customCss: ['./src/styles/custom.css'],
                         social: [
@@ -74,5 +93,16 @@ export default defineConfig({
                         ],
                         plugins: [starlightLinksValidator()],
                 }),
-        ],
+        
+		astroTakumi({
+			options: {
+				domBackend: "linkedom",
+				fonts: [fs.readFileSync("./node_modules/@fontsource/roboto/files/roboto-latin-400-normal.woff2")],
+				width: 1200,
+				height: 630,
+				format: "png",
+			},
+			render: __render,
+		}),
+	],
 });
