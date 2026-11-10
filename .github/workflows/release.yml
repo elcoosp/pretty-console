@@ -1,6 +1,3 @@
-# Standard Rust release caller.
-# Copy to .github/workflows/release.yml in each Rust repo.
-# Override only the inputs that differ — everything else is canonical.
 name: Release
 
 on:
