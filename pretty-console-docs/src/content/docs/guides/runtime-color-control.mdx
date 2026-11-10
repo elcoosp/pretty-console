@@ -15,12 +15,10 @@ The print family — `print`, `println`, `eprint`, `eprintln` and `write_to` —
 honors a global [`ColorChoice`](/reference/color-control/). The default,
 `Auto`, checks the environment and stdout:
 
-```rust
-use pretty_console::{Span, Styled};
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
 
 // Styled when colors are enabled, plain text otherwise.
-Span::new("hello").red().println();
-```
+Span::new("hello").red().println();`} />
 
 The detection runs once, is cached, and never touches the environment again on
 the hot printing path. String rendering (`to_string`, `render`, `Display`) is
@@ -47,8 +45,7 @@ disabling ones. The exact precedence lives in
 Set the global choice after parsing your CLI arguments. `Auto` restores
 environment-driven behavior:
 
-```rust
-use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
+<Code lang="rust" code={`use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
 
 enum ColorFlag {
     Always,
@@ -65,8 +62,7 @@ fn main() {
     });
 
     Span::new("styled or plain, decided above").cyan().println();
-}
-```
+}`} />
 
 `set_color_choice` invalidates the cached `Auto` decision, so the next print
 re-evaluates if you switch back to `Auto`.
@@ -76,11 +72,9 @@ re-evaluates if you switch back to `Auto`.
 Diagnostics belong on stderr; the `e*` variants behave like their stdout
 siblings and honor the same choice:
 
-```rust
-use pretty_console::{Span, Styled};
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
 
-Span::error("Disk full").eprintln();
-```
+Span::error("Disk full").eprintln();`} />
 
 ## Handle broken pipes with try_*
 
@@ -88,28 +82,24 @@ The plain print methods panic when the underlying stream fails — for example
 when stdout is a closed pipe (`myapp | head -n 1`). The `try_*` variants
 return `io::Result<()>` instead:
 
-```rust
-use pretty_console::{Span, Styled};
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
 
 if Span::new("streaming…").dim().try_println().is_err() {
     // downstream closed the pipe — exit quietly
-}
-```
+}`} />
 
 `write_to` does the same for any writer you hold:
 
-```rust
-use pretty_console::{Span, Styled};
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
 
 fn main() -> std::io::Result<()> {
     let mut buffer: Vec<u8> = Vec::new();
     Span::new("logged").green().write_to(&mut buffer)?;
     Ok(())
-}
-```
+}`} />
 
 ## Next steps
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { Code, LinkCard } from '@astrojs/starlight/components';
 
 <LinkCard title="Color control" description="Every function and variable with its exact behavior." href="/reference/color-control/" />

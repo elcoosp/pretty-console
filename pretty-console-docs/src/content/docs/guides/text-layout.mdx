@@ -15,13 +15,11 @@ For the full escape grammar and range tables, see
 `visible_width` counts terminal columns. Escape sequences count as zero, wide
 CJK characters count as two, combining marks count as zero:
 
-```rust
-use pretty_console::{visible_width, Styled};
+<Code lang="rust" code={`use pretty_console::{visible_width, Styled};
 
 assert_eq!(visible_width("héllo"), 5);
 assert_eq!(visible_width("日本語"), 6);          // three wide chars
-assert_eq!(visible_width(&"hi".red().to_string()), 2); // escapes are zero-width
-```
+assert_eq!(visible_width(&"hi".red().to_string()), 2); // escapes are zero-width`} />
 
 The single-character building block is `char_width`.
 
@@ -30,12 +28,10 @@ The single-character building block is `char_width`.
 `truncate` cuts at `max_width` visible columns and appends the tail when
 truncation happens:
 
-```rust
-use pretty_console::truncate;
+<Code lang="rust" code={`use pretty_console::truncate;
 
 assert_eq!(truncate("hello world", 8, "…"), "hello w…");
-assert_eq!(truncate("short", 8, "…"), "short");
-```
+assert_eq!(truncate("short", 8, "…"), "short");`} />
 
 Three details matter in real pipelines:
 
@@ -51,13 +47,11 @@ Three details matter in real pipelines:
 `pad` widens a string to exactly `width` visible columns with a fill
 character, choosing a side through `Align`:
 
-```rust
-use pretty_console::{pad, Align};
+<Code lang="rust" code={`use pretty_console::{pad, Align};
 
 assert_eq!(pad("hi", 4, Align::Left, '.'), "hi..");
 assert_eq!(pad("hi", 4, Align::Right, '.'), "..hi");
-assert_eq!(pad("hi", 5, Align::Center, '.'), ".hi..");
-```
+assert_eq!(pad("hi", 5, Align::Center, '.'), ".hi..");`} />
 
 `pad` never cuts: an input wider than `width` comes back unchanged. Combine
 with `truncate` when you need both directions.
@@ -68,8 +62,7 @@ with `truncate` when you need both directions.
 computes padding from visible width, so standard format specs align styled
 values without extra work:
 
-```rust
-use pretty_console::Styled;
+<Code lang="rust" code={`use pretty_console::Styled;
 
 let rows = [("fmt", "ok"), ("clippy", "ok"), ("tests", "failed")];
 for (name, status) in rows {
@@ -79,8 +72,7 @@ for (name, status) in rows {
         status.red().bold()
     };
     println!("{:<10}| {}", name, status_span);
-}
-```
+}`} />
 
 The `{:<10}` pads the plain name; the styled status needs no padding
 compensation, because `{}` on a span never counts its escapes. This is the
@@ -90,6 +82,6 @@ strings.
 
 ## Next steps
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { Code, LinkCard } from '@astrojs/starlight/components';
 
 <LinkCard title="Text tools" description="Every function with parameters, returns and edge cases." href="/reference/text-tools/" />

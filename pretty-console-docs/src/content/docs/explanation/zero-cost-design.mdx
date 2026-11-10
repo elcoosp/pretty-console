@@ -25,11 +25,9 @@ compiles to register moves. A v1-style `Vec<Attribute>` was the audit's
 first finding: every builder call cloned a heap list. In v2 the whole style
 can live in a `const`:
 
-```rust
-use pretty_console::{Color, Style};
+<Code lang="rust" code={`use pretty_console::{Color, Style};
 
-const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
-```
+const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);`} />
 
 ## The Effects bitset
 
@@ -76,6 +74,6 @@ remain practical approximations of what any terminal does.
 
 ## Next steps
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { Code, LinkCard } from '@astrojs/starlight/components';
 
 <LinkCard title="Deterministic rendering" description="The other half of the output contract." href="/explanation/rendering-model/" />

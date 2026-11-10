@@ -117,11 +117,9 @@ string-like values in place. `styled()` wraps the value in a plain
 `Span`; every other method forwards to the corresponding `Span` builder and
 returns a `Span`:
 
-```rust
-use pretty_console::Styled;
+<Code lang="rust" code={`use pretty_console::Styled;
 
-let span = "hello".red().bold();
-```
+let span = "hello".red().bold();`} />
 
 The trait carries `styled`, the sixteen foreground colors, the sixteen
 `on_*` backgrounds, and the eight attribute methods — the same names as the
@@ -139,6 +137,6 @@ The trait carries `styled`, the sixteen foreground colors, the sixteen
 
 ## Next steps
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { Code, LinkCard } from '@astrojs/starlight/components';
 
 <LinkCard title="Deterministic rendering" description="Why to_string never consults the environment." href="/explanation/rendering-model/" />

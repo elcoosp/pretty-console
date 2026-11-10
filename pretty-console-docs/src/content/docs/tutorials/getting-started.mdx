@@ -4,7 +4,7 @@ description: Install pretty-console in a fresh Rust project and print styled spa
 type: tutorial
 ---
 
-import { LinkCard, Tabs, TabItem, Steps, Aside } from '@astrojs/starlight/components';
+import { Aside, Code, LinkCard, Steps, TabItem, Tabs } from '@astrojs/starlight/components';
 
 This tutorial takes you from an empty directory to a running program that
 prints styled spans and a multi-segment line. You will see visible results at
@@ -30,29 +30,23 @@ A tiny program that prints:
 1. **Create a project.** In your terminal, create a new Rust project and move
    into it:
 
-   ```sh
-   cargo new pretty-demo
-   cd pretty-demo
-   ```
+   <Code lang="sh" code={`cargo new pretty-demo
+cd pretty-demo`} />
 
 2. **Add the crate.**
 
    <Tabs>
      <TabItem label="cargo add">
 
-   ```sh
-   cargo add pretty-console
-   ```
+   <Code lang="sh" code={`cargo add pretty-console`} />
 
      </TabItem>
      <TabItem label="Cargo.toml">
 
    Add the dependency to the `[dependencies]` section of `Cargo.toml`:
 
-   ```toml
-   [dependencies]
-   pretty-console = "2.0.0"
-   ```
+   <Code lang="toml" code={`[dependencies]
+pretty-console = "2.0.0"`} />
 
      </TabItem>
    </Tabs>
@@ -62,20 +56,16 @@ A tiny program that prints:
 
 3. **Style a single span.** Open `src/main.rs` and replace its contents with:
 
-   ```rust
-   use pretty_console::{Span, Styled};
+   <Code lang="rust" code={`use pretty_console::{Span, Styled};
 
-   fn main() {
-       Span::new("Hello, world!").red().bold().println();
-   }
-   ```
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+}`} />
 
    Every builder call — `.red()`, `.bold()` — returns the span again, so calls
    chain left to right. `.println()` writes the result to stdout. Run it:
 
-   ```sh
-   cargo run
-   ```
+   <Code lang="sh" code={`cargo run`} />
 
    You should now see **Hello, world!** printed in bold red.
 
@@ -89,20 +79,16 @@ A tiny program that prints:
    directly, without constructing a `Span` by hand. Add a second line to
    `main`:
 
-   ```rust
-   use pretty_console::{Span, Styled};
+   <Code lang="rust" code={`use pretty_console::{Span, Styled};
 
-   fn main() {
-       Span::new("Hello, world!").red().bold().println();
-       println!("{}", "Ready to go".cyan());
-   }
-   ```
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+    println!("{}", "Ready to go".cyan());
+}`} />
 
    Run it again:
 
-   ```sh
-   cargo run
-   ```
+   <Code lang="sh" code={`cargo run`} />
 
    You should now see both lines: the bold red greeting, then **Ready to go**
    in cyan.
@@ -111,28 +97,24 @@ A tiny program that prints:
    carries its own style. `Line` joins spans into one row, and its styling
    methods apply to the segment you pushed last:
 
-   ```rust
-   use pretty_console::{Line, Span, Styled};
+   <Code lang="rust" code={`use pretty_console::{Line, Span, Styled};
 
-   fn main() {
-       Span::new("Hello, world!").red().bold().println();
-       println!("{}", "Ready to go".cyan());
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+    println!("{}", "Ready to go".cyan());
 
-       Line::new()
-           .push("  build ").dim()
-           .push("cargo build --release").bold()
-           .push(" finished in ").push("4.2s").green()
-           .println();
-   }
-   ```
+    Line::new()
+        .push("  build ").dim()
+        .push("cargo build --release").bold()
+        .push(" finished in ").push("4.2s").green()
+        .println();
+}`} />
 
    The third line reads left to right: a dim label, a bold command, a plain
    connector, and a green duration — because `.green()` styles the last pushed
    segment, `"4.2s"`. Run the final version:
 
-   ```sh
-   cargo run
-   ```
+   <Code lang="sh" code={`cargo run`} />
 
    You should now see three rows:
 

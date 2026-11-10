@@ -16,15 +16,13 @@ colors. For turning colors off entirely, see
 `CLICOLOR`, `TERM` and `COLORTERM`, then falls back to stdout detection. It
 returns `None` when no colors should be emitted at all:
 
-```rust
-use pretty_console::{supports_color_level, ColorLevel};
+<Code lang="rust" code={`use pretty_console::{supports_color_level, ColorLevel};
 
 match supports_color_level() {
     Some(ColorLevel::TrueColor) => println!("terminal can display everything"),
     Some(level) => println!("terminal degrades to {level:?}"),
     None => println!("no colors at all"),
-}
-```
+}`} />
 
 ## Render a span or line at a level
 
@@ -32,16 +30,14 @@ match supports_color_level() {
 representation the level supports. Unlike `render`, it exists for exactly this
 situation — pre-degrading before you ship the string somewhere else:
 
-```rust
-use pretty_console::{ColorLevel, Line, Span, Styled};
+<Code lang="rust" code={`use pretty_console::{ColorLevel, Line, Span, Styled};
 
 let fancy = "truecolor text".fg_hex(0x7C_4D_FF);
 println!("{}", fancy.render_with(ColorLevel::Ansi256)); // nearest palette entry
 println!("{}", fancy.render_with(ColorLevel::Ansi16));  // nearest of the 16 base colors
 
 let line = Line::new().push("done ").push("fast").fg_hex(0x22_D3_EE);
-println!("{}", line.render_with(ColorLevel::Ansi16));
-```
+println!("{}", line.render_with(ColorLevel::Ansi16));`} />
 
 The returned string is plain text with the degraded escapes baked in — write it
 to logs, a pipe or a file as-is.
@@ -51,13 +47,11 @@ to logs, a pipe or a file as-is.
 `Color` exposes the same reduction so you can render palette swatches or
 legends that match the degraded output:
 
-```rust
-use pretty_console::{Color, ColorLevel};
+<Code lang="rust" code={`use pretty_console::{Color, ColorLevel};
 
 let brand = Color::hex(0x7C_4D_FF);
 let for_256 = brand.degrade_to(ColorLevel::Ansi256);
-let for_16 = brand.degrade_to(ColorLevel::Ansi16);
-```
+let for_16 = brand.degrade_to(ColorLevel::Ansi16);`} />
 
 `degrade_to` keeps colors that the level can represent exactly (a base color
 stays itself at `Ansi16`), maps RGB to the nearest 256-palette entry, and maps
@@ -67,14 +61,12 @@ anything to the nearest of the 16 base colors at `Ansi16`.
 
 Combine detection and degradation in one place, early in `main`:
 
-```rust
-use pretty_console::{supports_color_level, ColorLevel, Span, Styled};
+<Code lang="rust" code={`use pretty_console::{supports_color_level, ColorLevel, Span, Styled};
 
 fn render_report(body: &str) -> String {
     let level = supports_color_level().unwrap_or(ColorLevel::Ansi16);
     Span::new(body).bold().render_with(level)
-}
-```
+}`} />
 
 On a color-less runner, `supports_color_level()` returns `None` and the
 `unwrap_or` keeps your pipeline rendering (as plain 16-color output); pick
@@ -83,6 +75,6 @@ On a color-less runner, `supports_color_level()` returns `None` and the
 
 ## Next steps
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { Code, LinkCard } from '@astrojs/starlight/components';
 
 <LinkCard title="Color control" description="The exact detection order and environment variables." href="/reference/color-control/" />

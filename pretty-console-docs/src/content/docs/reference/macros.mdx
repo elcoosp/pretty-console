@@ -13,36 +13,30 @@ exported at the crate root (`#[macro_export]`). Source: `src/macros.rs`.
 [`Span`](/reference/span/) from `format!` arguments and a list of style
 method names:
 
-```rust
-use pretty_console::paint;
+<Code lang="rust" code={`use pretty_console::paint;
 
 let msg = paint!(green bold, "{} tests passed", 12);
-msg.println();
-```
+msg.println();`} />
 
 ## style!
 
 `style!(method+) -> Style` — builds a [`Style`](/reference/style/) the same
 way:
 
-```rust
-use pretty_console::style;
+<Code lang="rust" code={`use pretty_console::style;
 
 let danger = style!(bold red on_white);
-danger.paint("boom").println();
-```
+danger.paint("boom").println();`} />
 
 ## line!
 
 `line!(span, …) -> Line` — builds a [`Line`](/reference/line/) by pushing
 each expression (spans or plain strings):
 
-```rust
-use pretty_console::line;
+<Code lang="rust" code={`use pretty_console::line;
 
 let row = line!("cache ", "warm", " · 42 entries");
-row.println();
-```
+row.println();`} />
 
 ## Constraints
 
@@ -57,6 +51,6 @@ row.println();
 
 ## Next steps
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { Code, LinkCard } from '@astrojs/starlight/components';
 
 <LinkCard title="Span" description="The builder methods the macros accept." href="/reference/span/" />
