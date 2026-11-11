@@ -3,6 +3,7 @@ import starlightLinksValidator from 'starlight-links-validator';
 
 
 export default await defineDocsConfig({
+  llmsTxt: {},
   changelog: { repo: 'elcoosp/pretty-console' },
   site: 'https://pretty-console.vercel.app',
   domain: 'pretty-console.vercel.app',
