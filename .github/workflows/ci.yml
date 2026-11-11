@@ -32,12 +32,8 @@ jobs:
         run: cargo fmt --all --check
 
   clippy:
-    name: Clippy (${{ matrix.features || 'default' }})
+    name: Clippy
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        features: ["", "no-color"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -47,8 +43,10 @@ jobs:
           components: clippy
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-      - name: Run clippy (pedantic + warnings denied via Cargo.toml lints)
-        run: cargo clippy --all-targets ${{ matrix.features != '' && format('--features {0}', matrix.features) || '' }} -- -D warnings
+      - name: Run clippy (default features)
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run clippy (no-color feature)
+        run: cargo clippy --all-targets --features no-color -- -D warnings
 
   test:
     name: Tests (${{ matrix.os }})
