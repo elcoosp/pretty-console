@@ -48,7 +48,7 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Run clippy (pedantic + warnings denied via Cargo.toml lints)
-        run: cargo clippy --all-targets --features ${{ matrix.features }} -- -D warnings
+        run: cargo clippy --all-targets ${{ matrix.features != '' && format('--features {0}', matrix.features) || '' }} -- -D warnings
 
   test:
     name: Tests (${{ matrix.os }})
