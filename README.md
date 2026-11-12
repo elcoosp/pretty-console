@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/logo.png" alt="pretty-console Logo" width="300"/>
+  <img src="https://cdn.jsdelivr.net/gh/elcoosp/pretty-console@main/docs/logo.png" alt="pretty-console Logo" width="300"/>
   <p>
     <strong>The fluent, zero-cost terminal styling toolkit for Rust.</strong><br/>
     Zero dependencies · <code>Copy</code> styles · allocation-free rendering · multi-segment lines · gradients · panels · hyperlinks · capability detection · ANSI-aware text tools
@@ -279,9 +279,6 @@ Measured with the in-repo micro-benchmark (`cargo run --release --example bench`
 - `Console::new_with_style` is kept; the Span-native spelling is `Span::new_with_style` / `Style::paint`.
 - The `insta` dev-dependency was replaced by exact-string contract tests; rendering determinism guarantees are unchanged.
 
-## License
-
-MIT — see [LICENSE-MIT](LICENSE-MIT).
 
 [`Styled`]: https://docs.rs/pretty_console/latest/pretty_console/trait.Styled.html
 [`Line`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Line.html
@@ -290,11 +287,3 @@ MIT — see [LICENSE-MIT](LICENSE-MIT).
 [`gradient`]: https://docs.rs/pretty_console/latest/pretty_console/fn.gradient.html
 [`rainbow`]: https://docs.rs/pretty_console/latest/pretty_console/fn.rainbow.html
 [`supports_color_level`]: https://docs.rs/pretty_console/latest/pretty_console/fn.supports_color_level.html
-[`strip_ansi`]: https://docs.rs/pretty_console/latest/pretty_console/fn.strip_ansi.html
-[`visible_width`]: https://docs.rs/pretty_console/latest/pretty_console/fn.visible_width.html
-[`truncate`]: https://docs.rs/pretty_console/latest/pretty_console/fn.truncate.html
-[`pad`]: https://docs.rs/pretty_console/latest/pretty_console/fn.pad.html
-[`wrap`]: https://docs.rs/pretty_console/latest/pretty_console/fn.wrap.html
-[`Span::wrap`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Span.html#method.wrap
-[`Line::wrap`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Line.html#method.wrap
-[`Panel::soft_wrap`]: https://docs.rs/pretty_console/latest/pretty_console/struct.Panel.html#method.soft_wrap
