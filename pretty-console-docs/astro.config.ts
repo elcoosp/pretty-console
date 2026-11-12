@@ -31,11 +31,11 @@ export default await defineDocsConfig({
 
                         sidebar: [
                                 {
-                                        label: 'Tutorials',
+                                        label: 'Tutorials', translations: { fr: 'Tutoriels' },
                                         items: [{ label: 'Getting started', slug: 'tutorials/getting-started' }]
                                 },
                                 {
-                                        label: 'How-to guides',
+                                        label: 'How-to guides', translations: { fr: 'Guides pratiques' },
                                         items: [
                                                 { label: 'Reuse and merge styles', slug: 'guides/reusable-styles' },
                                                 { label: 'Compose status lines', slug: 'guides/status-lines' },
@@ -48,7 +48,7 @@ export default await defineDocsConfig({
                                         ]
                                 },
                                 {
-                                        label: 'Reference',
+                                        label: 'Reference', translations: { fr: 'Référence' },
                                         items: [
                                                 { label: 'Span', slug: 'reference/span' },
                                                 { label: 'Style, Attribute and Effects', slug: 'reference/style' },
@@ -62,7 +62,7 @@ export default await defineDocsConfig({
                                         ]
                                 },
                                 {
-                                        label: 'Explanation',
+                                        label: 'Explanation', translations: { fr: 'Explication' },
                                         items: [
                                                 { label: 'The zero-cost design', slug: 'explanation/zero-cost-design' },
                                                 { label: 'Deterministic rendering', slug: 'explanation/rendering-model' },
