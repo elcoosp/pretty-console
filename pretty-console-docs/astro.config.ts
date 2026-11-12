@@ -32,7 +32,7 @@ export default await defineDocsConfig({
                         sidebar: [
                                 {
                                         label: 'Tutorials', translations: { fr: 'Tutoriels' },
-                                        items: [{ label: 'Getting started', slug: 'tutorials/getting-started' }]
+                                        items: [{ label: 'Getting started', slug: 'tutorials/getting-started' }], translations: { fr: "Commencer" }
                                 },
                                 {
                                         label: 'How-to guides', translations: { fr: 'Guides pratiques' },
@@ -58,7 +58,7 @@ export default await defineDocsConfig({
                                                 { label: 'Gradient and rainbow functions', slug: 'reference/decorations' },
                                                 { label: 'Text tools', slug: 'reference/text-tools' },
                                                 { label: 'Color control', slug: 'reference/color-control' },
-                                                { label: 'Macros', slug: 'reference/macros' },
+                                                { label: 'Macros', translations: { fr: "Macros" }, slug: 'reference/macros' },
                                         ]
                                 },
                                 {
