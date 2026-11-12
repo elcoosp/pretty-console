@@ -76,7 +76,7 @@ jobs:
       - name: Install Rust 1.85 toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "1.85.0"
+          toolchain: "1.100.0"
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Check build with MSRV
