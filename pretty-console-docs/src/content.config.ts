@@ -1,21 +1,11 @@
 import { defineCollection } from 'astro:content';
-import { z } from 'astro/zod';
 import { docsLoader, i18nLoader } from '@astrojs/starlight/loaders';
 import { docsSchema, i18nSchema } from '@astrojs/starlight/schema';
+import { fileURLToPath } from 'node:url';
 
-const docs = defineCollection({
-	loader: docsLoader(),
-	schema: docsSchema({
-		extend: z.object({
-			/** The Diátaxis quadrant this page belongs to. The splash homepage carries no type. */
-			type: z.enum(['tutorial', 'how-to', 'reference', 'explanation']).optional(),
-		}),
-	}),
-});
+const toolkitI18nPath = fileURLToPath(new URL('../node_modules/@elcoosp/docs-toolkit/i18n/', import.meta.url));
 
-const i18n = defineCollection({
-	loader: i18nLoader(),
-	schema: i18nSchema(),
-});
-
-export const collections = { docs, i18n };
+export const collections = {
+  docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
+  i18n: defineCollection({ loader: i18nLoader({ base: toolkitI18nPath }), schema: i18nSchema() }),
+};

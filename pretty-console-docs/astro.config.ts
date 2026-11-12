@@ -1,7 +1,6 @@
 import { defineDocsConfig } from '@elcoosp/docs-toolkit/config';
 import starlightLinksValidator from 'starlight-links-validator';
 
-
 export default await defineDocsConfig({
   llmsTxt: {},
   changelog: { repo: 'elcoosp/pretty-console' },
@@ -29,12 +28,7 @@ export default await defineDocsConfig({
                                 baseUrl:
                                         'https://github.com/elcoosp/pretty-console/edit/main/docs-site/src/content/docs/'
                         },
-                        locales: {
-                                root: {
-                                        label: 'English',
-                                        lang: 'en'
-                                }
-                        },
+
                         sidebar: [
                                 {
                                         label: 'Tutorials',
