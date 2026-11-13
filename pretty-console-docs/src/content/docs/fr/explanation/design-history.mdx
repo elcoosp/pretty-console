@@ -1,0 +1,83 @@
+---
+title: Comment la v2 a vu le jour
+description: "Les conclusions de l'audit de la v1, les décisions qui ont façonné la réécriture 2.0, et les non-objectifs délibérés."
+type: explanation
+---
+
+La version 2.0 n'a pas été une accumulation de fonctionnalités mais une
+refonte dictée par un audit. Cette page résume ce dossier — les conclusions,
+les décisions et les non-objectifs — tel que le projet lui-même l'a documenté
+dans `docs/DESIGN.md` et `CHANGELOG.md`. Les affirmations ci-dessous sont
+sourcées dans ces documents ; là où le *pourquoi* n'est pas consigné, la page
+ne présente que ce que fait le code.
+
+## Ce que coûtait la v1
+
+L'audit de performance de la 1.1.0 a relevé six coûts structurels. Chaque
+rendu d'une valeur stylée allouait à répétition : un `Vec<Attribute>` cloné à
+chaque appel de builder, des `String` retournées par code de couleur, un
+`Vec<String>` joint dans la séquence de départ, et un `format!` plus un clone
+de texte dans `render`. L'affichage relisait les variables d'environnement à
+chaque ligne. Et `Style` n'était ni `Copy` ni constructible en `const`, donc
+aucune table de styles statique n'était possible.
+
+## Ce qui manquait à la v1
+
+L'audit DX, en comparaison avec `owo-colors`, `yansi`, `colored`, `anstyle` et
+`termcolor`, a identifié les manques qui sont devenus la liste de
+fonctionnalités de la v2 : pas de lignes multi-segments, pas d'hyperliens,
+pas de dégradés, pas de détection de capacité ni de dégradation, pas
+d'analyse de chaîne hexadécimale, pas de boîte à outils texte compatible
+ANSI, pas de style conditionnel, pas de macros, pas de panneaux, pas d'aide
+de contraste, pas d'IO faillible, largeur calculée à partir de `chars()` au
+lieu des colonnes du terminal, et des attributs dupliqués émettant des codes
+dupliqués. Une conclusion était de nommage : `Console` n'était pas une
+console mais une chaîne stylée.
+
+## Les décisions de modèle centrales
+
+La refonte s'est arrêtée sur un petit ensemble de décisions imbriquées :
+
+- `Style` et `Effects` sont devenus des valeurs `Copy`, constructibles en
+  `const` ; la liste d'attributs est devenue un jeu de bits `u16` avec un
+  ordre d'émission canonique et des ajouts idempotents.
+- `Span` est devenu le type principal — texte plus style plus lien OSC 8
+  optionnel — avec `Display` écrivant les codes SGR directement dans le
+  formateur.
+- `Line` est devenu la primitive de composition, avec des méthodes de style
+  qui s'appliquent au dernier span poussé, pour que les chaînes se lisent de
+  gauche à droite.
+- La philosophie de rendu déterministe de la v1 a été conservée et rendue
+  explicite : le rendu en chaîne ne consulte jamais l'environnement ; seule
+  l'impression le fait.
+
+## Stratégie de compatibilité
+
+Le MSRV est resté à 1.85 (édition 2024), `unsafe` est resté interdit, et la
+crate a conservé zéro dépendance à l'exécution. `Console` reste un alias de
+type de `Span`, donc la majeure partie du code 1.x continue de compiler.
+Trois changements incompatibles ont été acceptés et documentés : des codes
+d'attributs canoniques et dédupliqués ; `Style::attributes()` renvoyant le jeu
+de bits `Effects` au lieu de `&[Attribute]` ; et la dépendance de dev `insta`
+remplacée par des tests de contrat à chaîne exacte. Le
+[guide de migration](/guides/migrate-from-v1/) transforme cela en étapes.
+
+## Non-objectifs
+
+Le document de conception nomme ce que la v2 ne fait délibérément pas :
+
+- Requêtes de taille de fenêtre, contrôle de curseur et écrans alternatifs —
+  le territoire des crates de contrôle de terminal.
+- Parité complète de largeur Unicode avec la crate `unicode-width` — la table
+  intégrée couvre les plages courantes CJK, emoji et combinantes, documentée
+  comme une approximation au service de la garantie zéro-dépendance.
+
+Ces frontières sont des positions de conception stables, pas des
+fonctionnalités manquantes ; une PR introduisant l'une ou l'autre inverserait
+une décision consignée plutôt que de combler un manque.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="La conception zéro-coût" description="Comment les conclusions de l'audit se sont traduites dans l'implémentation." href="/explanation/zero-cost-design/" />

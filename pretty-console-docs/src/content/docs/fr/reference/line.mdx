@@ -1,0 +1,81 @@
+---
+title: Line
+description: "Spans ordonnés qui se rendent comme une ligne — la règle de style du dernier span, les opérations sur la ligne entière, le rendu et l'impression."
+type: reference
+---
+
+`Line` est une séquence ordonnée de [`Span`](/reference/span/) qui se rend
+comme une seule ligne. Elle dérive `Debug`, `Clone`, `Default`,
+`PartialEq`, `Eq`, `Hash`. Source : `src/line.rs`.
+
+## Construction
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | Ligne vide |
+| `from_spans` | `pub fn from_spans(spans: impl IntoIterator<Item = Span>) -> Self` | Depuis n'importe quel itérateur de spans |
+
+## Pousser et éditer des spans
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `push` | `pub fn push(self, span: impl Into<Span>) -> Self` | Ajoute ; style builder |
+| `push_mut` | `pub fn push_mut(&mut self, span: impl Into<Span>)` | Ajoute en place |
+| `extend` | `pub fn extend(self, spans: impl IntoIterator<Item = Span>) -> Self` | Ajoute plusieurs |
+| `spans` | `pub fn spans(&self) -> &[Span]` | Les spans poussés |
+| `visible_width` | `pub fn visible_width(&self) -> usize` | Largeur totale compatible CJK |
+
+### La règle du dernier span
+
+Les méthodes de style ci-dessous s'appliquent au **dernier span poussé**. Si
+la ligne est vide quand l'une d'elles est appelée, un span vide est d'abord
+créé, donc l'appel ne panique jamais — il restyle un segment invisible.
+
+| Groupe | Méthodes |
+| --- | --- |
+| Setters directs | `fg(Color)`, `bg(Color)`, `fg_rgb(u8, u8, u8)`, `bg_rgb(u8, u8, u8)`, `attr(Attribute)`, `effects(Effects)` |
+| Premier plan | `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright_black`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white` |
+| Arrière-plan | `on_black`, `on_red`, `on_green`, `on_yellow`, `on_blue`, `on_magenta`, `on_cyan`, `on_white`, `on_bright_black`, `on_bright_red`, `on_bright_green`, `on_bright_yellow`, `on_bright_blue`, `on_bright_magenta`, `on_bright_cyan`, `on_bright_white` |
+| Attributs | `bold`, `dim`, `italic`, `underline`, `blink`, `reverse`, `hidden`, `strikethrough` |
+
+## Opérations sur la ligne entière
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `with_style` | `pub fn with_style(self, style: Style) -> Self` | Fusionne dans **chaque** span ; les couleurs du style fusionné l'emportent, les attributs s'unissent |
+| `map_span` | `pub fn map_span(self, f: impl FnMut(Span) -> Span) -> Self` | Réécrit chaque span |
+| `when` | `pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self` | Builder conditionnel |
+
+## Rendu et impression
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Déterministe |
+| `render_with` | `pub fn render_with(&self, level: ColorLevel) -> String` | Dégarde chaque span à `level` |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Respecte `ColorChoice` ; faillible |
+| `print` / `println` | stdout, sans / avec saut de ligne | Panique en cas d'échec |
+| `eprint` / `eprintln` | stderr, sans / avec saut de ligne | Panique en cas d'échec |
+| `try_print` / `try_println` | stdout, faillible | `io::Result<()>` |
+| `try_eprint` / `try_eprintln` | stderr, faillible | `io::Result<()>` |
+
+À l'impression avec les couleurs désactivées, c'est la concaténation brute du
+texte des spans qui est écrite — aucun échappement. `Display` rend comme
+`render` ; une largeur de format remplit selon la largeur visible totale de
+la ligne, en respectant le remplissage et l'alignement de la spécification.
+
+## Dérivations et implémentations de traits
+
+| Implémentation | Comportement |
+| --- | --- |
+| `Default` | Ligne vide |
+| `From<&str>`, `From<String>` | Un span brut |
+| `From<Span>` | Ligne à un span |
+| `From<Vec<Span>>` | Direct |
+| `FromIterator<Span>` | Support de `collect()` |
+| `IntoIterator` | `Item = Span`, consomme la ligne |
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Composer des lignes d'état" description="Le guide orienté tâche pour construire des lignes." href="/guides/status-lines/" />

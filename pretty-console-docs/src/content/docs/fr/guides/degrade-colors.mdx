@@ -1,0 +1,85 @@
+---
+title: Dégarder les couleurs
+description: "Détectez la capacité couleur du terminal et rendez du contenu truecolor en sortie 256 couleurs ou 16 couleurs."
+type: how-to
+---
+
+Ce guide montre comment détecter ce qu'un terminal peut afficher et comment
+rendre du contenu truecolor à un niveau de capacité inférieur. Utilisez-le
+quand la sortie doit survivre aux journaux de CI, aux sessions `ssh` ou aux
+consoles d'IDE qui ne comprennent qu'un sous-ensemble des couleurs ANSI. Pour
+désactiver complètement les couleurs, voir
+[Contrôler les couleurs à l'exécution](/guides/runtime-color-control/).
+
+## Détecter la capacité du terminal
+
+`supports_color_level()` inspecte `FORCE_COLOR`, `CLICOLOR_FORCE`, `NO_COLOR`,
+`CLICOLOR`, `TERM` et `COLORTERM`, puis se rabat sur la détection de stdout.
+Il renvoie `None` quand aucune couleur ne devrait être émise du tout :
+
+<Code lang="rust" code={`use pretty_console::{supports_color_level, ColorLevel};
+
+match supports_color_level() {
+    Some(ColorLevel::TrueColor) => println!("terminal can display everything"),
+    Some(level) => println!("terminal degrades to {level:?}"),
+    None => println!("no colors at all"),
+}`} />
+
+## Rendre un span ou une ligne à un niveau
+
+`render_with` réduit chaque couleur de la valeur stylée à la représentation
+la plus riche que le niveau supporte. Contrairement à `render`, elle existe
+exactement pour cette situation — pré-dégrader avant d'expédier la chaîne
+ailleurs :
+
+<Code lang="rust" code={`use pretty_console::{ColorLevel, Line, Span, Styled};
+
+let fancy = "truecolor text".fg_hex(0x7C_4D_FF);
+println!("{}", fancy.render_with(ColorLevel::Ansi256)); // entrée de palette la plus proche
+println!("{}", fancy.render_with(ColorLevel::Ansi16));  // la plus proche des 16 couleurs de base
+
+let line = Line::new().push("done ").push("fast").fg_hex(0x22_D3_EE);
+println!("{}", line.render_with(ColorLevel::Ansi16));`} />
+
+La chaîne renvoyée est du texte brut avec les échappements dégradés
+incorporés — écrivez-la dans des journaux, un pipe ou un fichier telle
+quelle.
+
+## Dégarder une seule couleur
+
+`Color` expose la même réduction pour que vous puissiez rendre des
+échantillons de palette ou des légendes qui correspondent à la sortie
+dégradée :
+
+<Code lang="rust" code={`use pretty_console::{Color, ColorLevel};
+
+let brand = Color::hex(0x7C_4D_FF);
+let for_256 = brand.degrade_to(ColorLevel::Ansi256);
+let for_16 = brand.degrade_to(ColorLevel::Ansi16);`} />
+
+`degrade_to` conserve les couleurs que le niveau peut représenter exactement
+(une couleur de base reste elle-même à `Ansi16`), mappe RGB vers l'entrée de
+palette 256 la plus proche, et mappe tout vers la plus proche des 16 couleurs
+de base à `Ansi16`.
+
+## Produire une sortie stable pour les journaux de CI
+
+Combinez détection et dégradation en un seul endroit, tôt dans `main` :
+
+<Code lang="rust" code={`use pretty_console::{supports_color_level, ColorLevel, Span, Styled};
+
+fn render_report(body: &str) -> String {
+    let level = supports_color_level().unwrap_or(ColorLevel::Ansi16);
+    Span::new(body).bold().render_with(level)
+}`} />
+
+Sur un runner sans couleur, `supports_color_level()` renvoie `None` et le
+`unwrap_or` maintient votre pipeline (en sortie brute 16 couleurs) ; préférez
+`ColorChoice::Never` si vous ne voulez aucun échappement du tout — voir
+[Contrôler les couleurs à l'exécution](/guides/runtime-color-control/).
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Contrôle des couleurs" description="L'ordre exact de détection et les variables d'environnement." href="/reference/color-control/" />

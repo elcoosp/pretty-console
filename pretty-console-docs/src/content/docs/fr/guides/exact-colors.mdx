@@ -1,0 +1,81 @@
+---
+title: Utiliser des couleurs exactes
+description: "Appliquez des valeurs hexadécimales compactes, analysez des chaînes hexadécimales depuis la configuration, et choisissez des premiers plans lisibles avec le contraste WCAG."
+type: how-to
+---
+
+Ce guide montre comment appliquer des couleurs exactes issues d'un système de
+conception, comment analyser des chaînes de couleur depuis la configuration ou
+des drapeaux CLI, et comment choisir un premier plan lisible pour un
+arrière-plan arbitraire. Il suppose que vous savez imprimer un
+[`Span`](/reference/span/) stylé.
+
+## Utiliser une valeur hexadécimale compacte
+
+`Color::hex` construit une couleur RVB 24 bits depuis une valeur `0xRRGGBB`,
+et `fg_hex` / `bg_hex` l'appliquent en ligne :
+
+<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
+
+Span::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
+Span::new("Violet").fg_hex(0x7C_4D_FF).println();
+Span::new("Highlight").bg_hex(0x1E_29_3B).println();`} />
+
+`Color::hex(0x00FF7F)` équivaut à `Color::RGB(0, 255, 127)` — la valeur
+compacte est découpée en trois octets, du plus fort au plus faible.
+
+## Analyser une chaîne hexadécimale depuis la configuration ou la CLI
+
+`Color::from_hex_str` accepte `"#7c4dff"`, `"7c4dff"` et le raccourci à trois
+chiffres `"#f0a"`. Elle renvoie une `ParseColorError` au lieu de paniquer,
+donc elle s'intègre aux pipelines de configuration :
+
+<Code lang="rust" code={`use pretty_console::{Color, Span};
+
+let theme_color = "#22d3ee";
+match Color::from_hex_str(theme_color) {
+    Ok(color) => Span::new("theme accent").fg(color).println(),
+    Err(err) => eprintln!("bad color {theme_color:?}: {err}"),
+}`} />
+
+`Color` implémente aussi `FromStr`, donc `"#22d3ee".parse::<Color>()`
+fonctionne avec les bibliothèques qui analysent des chaînes génériquement.
+Les erreurs viennent sous deux variantes : `InvalidLength` (la chaîne n'a pas
+3 ou 6 chiffres hexadécimaux, en ignorant un `#` initial optionnel) et
+`InvalidDigit(char)` (un caractère n'est pas un chiffre hexadécimal).
+
+## Utiliser des entrées de palette 256
+
+Pour les terminaux où l'identité de palette compte, `Color::indexed(n)`
+sélectionne une entrée de la table 256 couleurs, et les seize constantes
+`Color::BLACK`…`Color::BRIGHT_WHITE` couvrent la palette de base :
+
+<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
+
+Span::new("sky").fg(Color::indexed(117)).println();
+Span::new("base red").fg(Color::RED).println();`} />
+
+Les entrées de palette se rendent comme `38;5;n` (premier plan) et `48;5;n`
+(arrière-plan) ; les couleurs RVB se rendent comme `38;2;r;g;b` et
+`48;2;r;g;b`. Voir [`Color`](/reference/color/) pour les codes exacts.
+
+## Choisir un premier plan lisible sur un arrière-plan
+
+`readable_on` renvoie noir ou blanc — celui qui satisfait le seuil de
+contraste WCAG 4.5:1 contre la couleur sur laquelle vous l'appelez :
+
+<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
+
+let bg = Color::hex(0x1E_29_3B);
+Span::new("readable").bg(bg).fg(bg.readable_on()).println();`} />
+
+Utilisez-la dès qu'un arrière-plan configurable par l'utilisateur pourrait
+être de n'importe quelle couleur ; le badge reste lisible sur quasi-noir et
+quasi-blanc également. `luminance()` expose la luminance relative WCAG
+sous-jacente si vous avez besoin de seuils personnalisés.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Color" description="Chaque constructeur, analyseur et membre de mathématique des couleurs." href="/reference/color/" />

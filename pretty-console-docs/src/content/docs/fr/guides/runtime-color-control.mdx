@@ -1,0 +1,106 @@
+---
+title: Contrôler les couleurs à l'exécution
+description: "Respectez NO_COLOR et compagnie, câblez un drapeau --color, et imprimez sur stderr sans paniquer."
+type: how-to
+---
+
+Ce guide montre comment la sortie imprimée décide entre texte stylé et texte
+brut, comment câbler cette décision dans votre propre drapeau `--color`, et
+comment imprimer sans paniquer sur des pipes fermés. Pour abaisser la
+*profondeur* des couleurs au lieu de les désactiver, voir
+[Dégarder les couleurs](/guides/degrade-colors/).
+
+## Comportement par défaut
+
+La famille print — `print`, `println`, `eprint`, `eprintln` et `write_to` —
+respecte un [`ColorChoice`](/reference/color-control/) global. Le défaut,
+`Auto`, vérifie l'environnement et stdout :
+
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+// Stylé quand les couleurs sont activées, texte brut sinon.
+Span::new("hello").red().println();`} />
+
+La détection s'exécute une fois, est mise en cache, et ne touche plus jamais
+l'environnement sur le chemin chaud d'impression. Le rendu en chaîne
+(`to_string`, `render`, `Display`) n'est pas affecté — voir
+[Rendu déterministe](/explanation/rendering-model/) pour la raison.
+
+## Les variables d'environnement que pretty-console respecte
+
+| Variable | Effet |
+| --- | --- |
+| `FORCE_COLOR` | `0` désactive les couleurs ; `1`/`2`/`3` les forcent (convention Node.js) ; vide signifie non défini |
+| `CLICOLOR_FORCE` | Toute valeur non-`0` force les couleurs |
+| `NO_COLOR` | Toute valeur non vide désactive les couleurs ([no-color.org](https://no-color.org/)) |
+| `CLICOLOR` | `0` désactive les couleurs |
+| `TERM` | `dumb` désactive les couleurs |
+| `COLORTERM` | `truecolor`/`24bit` annonce la capacité truecolor (utilisé par la détection, pas par l'interrupteur marche/arrêt) |
+
+`FORCE_COLOR` l'emporte sur `CLICOLOR_FORCE` ; les variables qui forcent
+l'emportent sur celles qui désactivent. La précédence exacte vit dans
+[`Contrôle des couleurs`](/reference/color-control/).
+
+## Câbler un drapeau --color
+
+Définissez le choix global après avoir analysé vos arguments CLI. `Auto`
+restaure le comportement piloté par l'environnement :
+
+<Code lang="rust" code={`use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
+
+enum ColorFlag {
+    Always,
+    Never,
+    Auto,
+}
+
+fn main() {
+    let flag = parse_color_flag(); // votre gestion de --color
+    set_color_choice(match flag {
+        ColorFlag::Always => ColorChoice::Always,
+        ColorFlag::Never => ColorChoice::Never,
+        ColorFlag::Auto => ColorChoice::Auto,
+    });
+
+    Span::new("styled or plain, decided above").cyan().println();
+}`} />
+
+`set_color_choice` invalide la décision `Auto` mise en cache, donc la
+prochaine impression réévalue si vous revenez à `Auto`.
+
+## Imprimer sur stderr
+
+Les diagnostics appartiennent à stderr ; les variantes `e*` se comportent
+comme leurs sœurs stdout et respectent le même choix :
+
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+Span::error("Disk full").eprintln();`} />
+
+## Gérer les pipes cassés avec try_*
+
+Les méthodes d'impression brutes paniquent quand le flux sous-jacent échoue —
+par exemple quand stdout est un pipe fermé (`myapp | head -n 1`). Les
+variantes `try_*` renvoient `io::Result<()>` à la place :
+
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+if Span::new("streaming…").dim().try_println().is_err() {
+    // le côté aval a fermé le pipe — sortir silencieusement
+}`} />
+
+`write_to` fait de même pour n'importe quel writer que vous tenez :
+
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+fn main() -> std::io::Result<()> {
+    let mut buffer: Vec<u8> = Vec::new();
+    Span::new("logged").green().write_to(&mut buffer)?;
+    Ok(())
+}`} />
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Contrôle des couleurs" description="Chaque fonction et variable avec son comportement exact." href="/reference/color-control/" />

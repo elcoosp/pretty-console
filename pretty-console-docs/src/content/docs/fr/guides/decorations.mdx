@@ -1,0 +1,102 @@
+---
+title: Ajouter dégradés, panneaux et hyperliens
+description: "Peignez du texte en dégradé et en arc-en-ciel, encadrez la sortie dans un panneau arrondi, et émettez des hyperliens OSC 8."
+type: how-to
+---
+
+Ce guide montre comment produire les formes décoratives : dégradés par
+caractère, arcs-en-ciel, panneaux arrondis avec titres incrustés, et
+hyperliens cliquables. Il suppose que vous savez imprimer un
+[`Span`](/reference/span/) stylé.
+
+## Faire passer un dégradé sur le texte
+
+`gradient` interpole d'une couleur à une autre, caractère par caractère, et
+renvoie une [`Line`](/reference/line/) :
+
+<Code lang="rust" code={`use pretty_console::{gradient, Color};
+
+gradient("sunrise fade", Color::hex(0xFF3E6C), Color::hex(0x4DC4FF)).println();`} />
+
+`gradient_bg` fait de même pour les arrière-plans. Les deux respectent
+[`ColorChoice`](/reference/color-control/) à l'impression, et les deux
+peuvent être pré-dégradés avec `render_with` comme n'importe quelle ligne.
+
+## Peindre un arc-en-ciel
+
+`rainbow` fait cycler la roue chromatique complète à travers les caractères
+du texte :
+
+<Code lang="rust" code={`use pretty_console::rainbow;
+
+rainbow("the full spectrum, one hue per character").println();`} />
+
+`rainbow_bg` peint le même spectre en arrière-plans. Les espaces sont aussi
+colorés — le spectre couvre chaque caractère, pas chaque glyphe visible — et
+chaque caractère est son propre span, donc le `spans()` de la ligne
+résultante a une entrée par caractère.
+
+## Construire un panneau avec titre
+
+`Panel` dessine une boîte arrondie avec un titre optionnel incrusté dans la
+bordure supérieure. Les lignes de contenu acceptent une
+[`Line`](/reference/line/), un [`Span`](/reference/span/), ou une chaîne
+brute :
+
+<Code lang="rust" code={`use pretty_console::{Line, Panel, Span, Style, Styled};
+
+Panel::new()
+    .title("Summary")
+    .border(Style::new().bright_black())
+    .line(Line::new().push("passed: ").dim().push("128").green().bold())
+    .line("skipped: 3".dim())
+    .line(Span::new("failed: 0").green())
+    .println();`} />
+
+La largeur intérieure s'ajuste à la ligne la plus large plus le remplissage
+par défaut ; le titre peut élargir la boîte. Seuls les caractères de bordure
+et le séparateur du titre prennent le style de bordure — le contenu garde ses
+propres couleurs.
+
+## Fixer la largeur du panneau
+
+`width` définit explicitement la largeur intérieure du contenu. Elle agit
+comme un plancher pour le titre et tronque les lignes trop larges avec une
+ellipse :
+
+<Code lang="rust" code={`use pretty_console::Panel;
+
+let panel = Panel::new()
+    .title("Build report")
+    .width(40)
+    .line("a very long status line that will be cut");
+panel.println();`} />
+
+Quand une ligne dépasse la largeur fixée, `render` la coupe au budget de
+largeur visible et ajoute `…`, donc la boîte ne casse jamais sa propre
+bordure. Retirez l'appel `.width(40)` pour laisser la boîte se
+dimensionner elle-même.
+
+## Rendre le texte cliquable avec OSC 8
+
+`link` attache un hyperlien. Les terminaux compatibles rendent le texte
+cliquable ; les autres ignorent la séquence :
+
+<Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+Span::new("pretty-console on GitHub")
+    .blue()
+    .underline()
+    .link("https://github.com/elcoosp/pretty-console")
+    .println();`} />
+
+Le lien entoure le texte stylé et est retiré par `unlink()` ; `url()` le
+renvoie pour inspection. Les liens ne sont émis qu'à l'impression avec
+couleurs activées — avec les couleurs désactivées, ou sous la fonctionnalité
+`no-color`, c'est le texte brut qui s'imprime.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Panel" description="Chaque méthode de builder, défaut et la formule de largeur." href="/reference/panel/" />

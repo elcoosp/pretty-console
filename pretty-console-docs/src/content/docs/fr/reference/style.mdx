@@ -1,0 +1,114 @@
+---
+title: Style, Attribute et Effects
+description: "Styles Copy réutilisables, les huit attributs de texte avec leurs codes SGR, et le jeu de bits Effects."
+type: reference
+---
+
+`Style` regroupe une couleur de premier plan, une couleur d'arrière-plan et
+un ensemble d'attributs de texte. Il est `Copy`, constructible en `const`, et
+n'alloue jamais. `Attribute` est l'énumération des huit attributs SGR ;
+`Effects` est le jeu de bits `u16` qui les stocke. Sources : `src/style.rs`,
+`src/attr.rs`.
+
+## Style
+
+Dérive `Debug`, `Clone`, `Copy`, `Default`, `PartialEq`, `Eq`, `Hash`.
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | Aucune couleur, aucun attribut |
+| `fg` | `pub const fn fg(self, color: Color) -> Self` | Fixe le premier plan |
+| `bg` | `pub const fn bg(self, color: Color) -> Self` | Fixe l'arrière-plan |
+| `attr` | `pub const fn attr(self, attribute: Attribute) -> Self` | Insère un attribut |
+| `effects` | `pub const fn effects(self, effects: Effects) -> Self` | Réunit un ensemble |
+| `foreground` | `pub const fn foreground(&self) -> Option<Color>` | Obtient le premier plan |
+| `background` | `pub const fn background(&self) -> Option<Color>` | Obtient l'arrière-plan |
+| `attributes` | `pub const fn attributes(&self) -> Effects` | Obtient le jeu de bits |
+| `is_plain` | `pub const fn is_plain(&self) -> bool` | Ni couleur ni attribut |
+| `merge` | `pub const fn merge(self, other: Self) -> Self` | Les couleurs de `other` l'emportent ; les attributs s'unissent |
+| `degraded` | `pub fn degraded(&self, level: ColorLevel) -> Self` | Réduit les deux couleurs à `level` |
+| `paint` | `pub fn paint(self, text: impl Into<String>) -> Span` | Produit un `Span` |
+| `to_ansi_start` | `pub fn to_ansi_start(&self) -> String` | La séquence de départ SGR ; vide quand brut |
+| `when` | `pub fn when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self` | Builder conditionnel |
+
+`Style` porte aussi les mêmes noms de méthodes de builder que
+[`Span`](/reference/span/) : seize couleurs de premier plan, seize
+arrière-plans `on_*`, huit méthodes d'attributs — toutes `const fn`.
+
+### Sémantique de fusion
+
+`self.merge(other)` :
+
+- premier plan : celui de `other` s'il est défini, sinon celui de `self` ;
+- arrière-plan : celui de `other` s'il est défini, sinon celui de `self` ;
+- attributs : l'union des deux ensembles — aucun doublon ne peut apparaître.
+
+### Implémentations de traits
+
+| Implémentation | Résultat |
+| --- | --- |
+| `From<Color>` | `Style::new().fg(color)` |
+| `From<Effects>` | `Style::new().effects(effects)` |
+| `From<Attribute>` | `Style::new().attr(attribute)` |
+
+## Attribute
+
+Dérive `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`.
+
+| Variante | Code SGR | Signification |
+| --- | --- | --- |
+| `Bold` | `1` | Gras ou intensité augmentée |
+| `Dim` | `2` | Intensité diminuée |
+| `Italic` | `3` | Italique |
+| `Underline` | `4` | Souligné |
+| `Blink` | `5` | Clignotement lent |
+| `Reverse` | `7` | Vidéo inversée |
+| `Hidden` | `8` | Masqué |
+| `Strikethrough` | `9` | Barré |
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `ALL` | `pub const ALL: [Attribute; 8]` | Ordre d'émission canonique |
+| `code` | `pub const fn code(self) -> &'static str` | Le paramètre SGR ci-dessus |
+| `bit` | `pub const fn bit(self) -> u16` | Son bit dans `Effects` |
+| `bit_index` | `pub const fn bit_index(self) -> u16` | Position 0–7 |
+
+## Effects
+
+Un jeu de bits `Copy` compact sur les huit attributs ; dérive `Debug`,
+`Clone`, `Copy`, `Default`, `PartialEq`, `Eq`, `Hash`. Ajouter un attribut
+est un seul `or`, les doublons sont impossibles, et chaque opération est
+`const`.
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `EMPTY` | `pub const EMPTY: Self` | Aucun attribut |
+| `BOLD` … `STRIKETHROUGH` | un `pub const` par attribut | Ensembles à un seul bit |
+| `ALL` | `pub const ALL: Self` | `0x00FF` |
+| `from_bits` | `pub const fn from_bits(bits: u16) -> Self` | Bits inconnus masqués |
+| `bits` | `pub const fn bits(self) -> u16` | Bits bruts |
+| `is_empty` | `pub const fn is_empty(self) -> bool` | Aucun attribut défini |
+| `contains` | `pub const fn contains(self, other: Self) -> bool` | Test de sur-ensemble |
+| `has` | `pub const fn has(self, attribute: Attribute) -> bool` | Test d'un seul attribut |
+| `insert` | `pub const fn insert(self, attribute: Attribute) -> Self` | Ajoute un attribut |
+| `remove` | `pub const fn remove(self, attribute: Attribute) -> Self` | Retire un attribut |
+| `union` | `pub const fn union(self, other: Self) -> Self` | Ou au niveau bit |
+| `without` | `pub const fn without(self, other: Self) -> Self` | Différence |
+| `attributes` | `pub fn attributes(self) -> EffectIter` | Itérateur en ordre canonique |
+
+Opérateurs : `BitOr`/`BitOrAssign` délèguent à `union` ; `Sub` délègue à
+`without`. `Display` imprime les paramètres SGR de l'ensemble joints par
+`;` — un ensemble vide n'imprime rien.
+
+## EffectIter
+
+`EffectIter` est l'itérateur produit par `Effects::attributes`. Il produit
+des éléments `Attribute` en ordre d'émission canonique (gras → barré) et
+implémente `ExactSizeIterator`. Il est `Copy` — un curseur sur le jeu de
+bits, moins coûteux à copier qu'à emprunter.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="La conception zéro-coût" description="Pourquoi les styles sont des valeurs Copy et ce que le jeu de bits apporte." href="/explanation/zero-cost-design/" />

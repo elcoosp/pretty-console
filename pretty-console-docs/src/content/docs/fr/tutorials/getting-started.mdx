@@ -1,0 +1,141 @@
+---
+title: Premiers pas
+description: "Installez pretty-console dans un projet Rust neuf et imprimez des spans stylés et une ligne multi-segments."
+type: tutorial
+---
+
+import { Aside, Code, LinkCard, Steps, TabItem, Tabs } from '@astrojs/starlight/components';
+
+Ce tutoriel vous emmène d'un répertoire vide à un programme en cours
+d'exécution qui imprime des spans stylés et une ligne multi-segments. Vous
+verrez des résultats visibles à chaque étape. Le tutoriel entier suit un seul
+chemin sans alternatives.
+
+## Prérequis
+
+- La chaîne d'outils Rust, version 1.85 ou plus récente (`rustc --version`
+  pour confirmer).
+- Un terminal.
+
+## Ce que vous allez construire
+
+Un petit programme qui imprime :
+
+1. un span stylé — texte rouge gras,
+2. un littéral de chaîne stylé — cyan, écrit en place,
+3. une ligne multi-segments — étiquette atténuée, commande grasse, durée
+   verte.
+
+## Construire et exécuter
+
+<Steps>
+
+1. **Créer un projet.** Dans votre terminal, créez un nouveau projet Rust et
+   déplacez-vous dedans :
+
+   <Code lang="sh" code={`cargo new pretty-demo
+cd pretty-demo`} />
+
+2. **Ajouter la crate.**
+
+   <Tabs>
+     <TabItem label="cargo add">
+
+   <Code lang="sh" code={`cargo add pretty-console`} />
+
+     </TabItem>
+     <TabItem label="Cargo.toml">
+
+   Ajoutez la dépendance à la section `[dependencies]` de `Cargo.toml` :
+
+   <Code lang="toml" code={`[dependencies]
+pretty-console = "2.0.0"`} />
+
+     </TabItem>
+   </Tabs>
+
+   Vous devriez maintenant voir `Adding pretty-console v2.0.0` (ou une version
+   corrective plus récente) dans la sortie.
+
+3. **Styler un seul span.** Ouvrez `src/main.rs` et remplacez son contenu
+   par :
+
+   <Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+}`} />
+
+   Chaque appel de builder — `.red()`, `.bold()` — renvoie de nouveau le
+   span, donc les appels se chaînent de gauche à droite. `.println()` écrit
+   le résultat sur stdout. Exécutez :
+
+   <Code lang="sh" code={`cargo run`} />
+
+   Vous devriez maintenant voir **Hello, world!** imprimé en rouge gras.
+
+   <Aside type="note">
+     Si votre terminal ne supporte pas les couleurs (par exemple dans certains
+     journaux de CI), le même texte apparaît sans échappements — l'impression
+     détecte ce cas pour vous.
+   </Aside>
+
+4. **Styler un littéral en place.** Le trait `Styled` peint directement les
+   littéraux de chaîne, sans construire un `Span` à la main. Ajoutez une
+   seconde ligne à `main` :
+
+   <Code lang="rust" code={`use pretty_console::{Span, Styled};
+
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+    println!("{}", "Ready to go".cyan());
+}`} />
+
+   Exécutez à nouveau :
+
+   <Code lang="sh" code={`cargo run`} />
+
+   Vous devriez maintenant voir les deux lignes : le salut rouge gras, puis
+   **Ready to go** en cyan.
+
+5. **Composer une ligne multi-segments.** Les vraies CLI impriment des lignes
+   où chaque segment porte son propre style. `Line` joint des spans en une
+   seule ligne, et ses méthodes de style s'appliquent au segment que vous
+   avez poussé en dernier :
+
+   <Code lang="rust" code={`use pretty_console::{Line, Span, Styled};
+
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+    println!("{}", "Ready to go".cyan());
+
+    Line::new()
+        .push("  build ").dim()
+        .push("cargo build --release").bold()
+        .push(" finished in ").push("4.2s").green()
+        .println();
+}`} />
+
+   La troisième ligne se lit de gauche à droite : une étiquette atténuée, une
+   commande grasse, un connecteur brut, et une durée verte — parce que
+   `.green()` style le dernier segment poussé, `"4.2s"`. Exécutez la version
+   finale :
+
+   <Code lang="sh" code={`cargo run`} />
+
+   Vous devriez maintenant voir trois lignes :
+
+   - **Hello, world!** — rouge gras
+   - **Ready to go** — cyan
+   - `build cargo build --release finished in 4.2s` — précédée de deux
+     espaces, avec l'étiquette atténuée, la commande grasse, et `4.2s` en
+     vert
+
+</Steps>
+
+## Où aller ensuite
+
+Vous avez le flux de travail de base. Les pages ci-dessous font le pas
+suivant dans chaque direction.
+
+<LinkCard title="Réutiliser et fusionner des styles" description="Définissez un style une fois et appliquez-le à plusieurs chaînes." href="/guides/reusable-styles/" />

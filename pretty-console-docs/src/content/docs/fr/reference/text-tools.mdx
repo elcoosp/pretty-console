@@ -1,0 +1,94 @@
+---
+title: Outils texte
+description: "strip_ansi compatible ANSI, char_width, visible_width, truncate et pad, avec la grammaire des échappements et les plages de largeur."
+type: reference
+---
+
+Les utilitaires texte traitent les séquences d'échappement ANSI comme de
+largeur nulle, sautent les caractères de largeur nulle et comptent les
+caractères larges comme deux colonnes, donc les mesures correspondent à ce
+qu'un terminal rend. Ils sont sans dépendance et utilisent une approximation
+pratique des tables de référence `unicode-width`. Source : `src/text.rs`.
+
+## strip_ansi
+
+`pub fn strip_ansi(input: &str) -> String` — retire les séquences
+d'échappement et renvoie le texte brut.
+
+Séquences reconnues :
+
+| Forme | Grammaire |
+| --- | --- |
+| CSI | `ESC [` + n'importe quel nombre d'octets paramètre/intermédiaire (`0x20..=0x3F`) + exactement un octet final |
+| OSC | `ESC ]` + charge utile jusqu'à `BEL` (`0x07`) ou `ESC \` (ST) |
+| Autre | `ESC` plus exactement un caractère suivant |
+
+Les séquences tronquées à la fin de l'entrée sont écartées.
+
+## char_width
+
+`pub fn char_width(c: char) -> usize` — le nombre de colonnes de terminal
+qu'occupe un caractère.
+
+| Plage | Largeur |
+| --- | --- |
+| Caractères de contrôle `0x00..=0x1F`, `0x7F` | 0 |
+| Diacritiques et marques combinantes (par ex. `0x0300..=0x036F`, `0x0591..=0x05BD`, `0x20D0..=0x20F0`) | 0 |
+| Espace de largeur nulle, ZWNJ, ZWJ, marques directionnelles (`0x200B..=0x200F`, `0x2060..=0x2064`, `0xFEFF`) | 0 |
+| Sélecteurs de variation (`0xFE00..=0xFE0F`, `0xE0100..=0xE01EF`) | 0 |
+| Hangul Jamo (`0x1100..=0x115F`) | 2 |
+| Radicaux, ponctuation, kana, idéogrammes CJK (`0x2E80..=0x33FF`, `0x3400..=0x4DBF`, `0x4E00..=0x9FFF`) | 2 |
+| Yi, jamo hangul et syllabes (`0xA000..=0xA4CF`, `0xA960..=0xA97F`, `0xAC00..=0xD7A3`) | 2 |
+| Formes de compatibilité CJK (`0xF900..=0xFAFF`, `0xFE10..=0xFE19`, `0xFE30..=0xFE6F`) | 2 |
+| Formes pleine chasse (`0xFF00..=0xFF60`, `0xFFE0..=0xFFE6`) | 2 |
+| Blocs emoji (`0x1F300..=0x1F64F`, `0x1F900..=0x1F9FF`, `0x1FA70..=0x1FAFF`) | 2 |
+| Extensions CJK B et C (`0x20000..=0x2FFFD`, `0x30000..=0x3FFFD`) | 2 |
+| Tout le reste | 1 |
+
+C'est une approximation documentée choisie pour garder la crate sans
+dépendance ; elle n'atteint pas la parité complète avec la crate
+`unicode-width`.
+
+## visible_width
+
+`pub fn visible_width(input: &str) -> usize` — le nombre de colonnes de
+terminal qu'occupe `input`.
+
+- Si l'entrée contient `ESC`, il est retiré d'abord, puis mesurée.
+- Les entrées purement ASCII comptent les octets imprimables `0x20..=0x7E`
+  (un chemin rapide).
+- Sinon, les largeurs des caractères sont additionnées.
+
+## truncate
+
+`pub fn truncate(input: &str, max_width: usize, tail: &str) -> String` —
+coupe à au plus `max_width` colonnes visibles, en ajoutant `tail` quand une
+troncature a lieu.
+
+| Comportement | Détail |
+| --- | --- |
+| Tient | Renvoyée inchangée (une nouvelle `String`) |
+| Budget | Les caractères continuent de tenir tant que `width + char_width ≤ max_width − visible_width(tail)` |
+| Échappements | Préservés et de largeur nulle ; une réinitialisation (`ESC [0m`) est ajoutée après la queue quand un échappement a été émis |
+| Budget sous-dimensionné | Quand `max_width` est inférieur à la queue, la queue dépasse la largeur demandée |
+
+## pad et Align
+
+`pub fn pad(input: &str, width: usize, align: Align, fill: char) -> String` —
+remplit à exactement `width` colonnes visibles.
+
+| Cas | Résultat |
+| --- | --- |
+| Entrée plus large que `width` | Renvoyée inchangée — `pad` ne tronque jamais |
+| `Align::Left` (défaut) | Remplissage ajouté à droite |
+| `Align::Center` | Réparti, la colonne impaire à droite |
+| `Align::Right` | Remplissage ajouté à gauche |
+
+`Align` dérive `Debug`, `Clone`, `Copy`, `Default`, `PartialEq`, `Eq`,
+`Hash` ; `Default` est `Left`.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Mesurer, tronquer et remplir du texte" description="Le guide orienté tâche avec des recettes de mise en page." href="/guides/text-layout/" />

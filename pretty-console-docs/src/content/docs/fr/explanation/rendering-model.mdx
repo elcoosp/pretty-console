@@ -1,0 +1,85 @@
+---
+title: Rendu déterministe
+description: "Pourquoi to_string et Display ne consultent jamais l'environnement alors que la famille print le fait — et ce que l'ordre canonique vous apporte."
+type: explanation
+---
+
+pretty-console trace une ligne nette entre deux façons dont la sortie quitte
+votre programme. La comprendre permet de prédire ce qu'afficheront vos tests,
+vos journaux et vos terminaux. Cette page est une observation d'un
+comportement documenté et testé dans `src/lib.rs`, `src/span.rs` et
+`src/style.rs`.
+
+## Deux chemins, deux contrats
+
+| Chemin | Membres | Environnement |
+| --- | --- | --- |
+| Rendu en chaîne | `render`, `render_with`, `to_string`, `Display` | Jamais consulté |
+| Impression | `print`, `println`, `eprint`, `eprintln`, `try_*`, `write_to` | Respecte `ColorChoice` |
+
+Le même [`Span`](/reference/span/) se rend à l'identique sur un runner de CI
+et dans un terminal interactif. L'impression, en revanche, décide au moment
+de l'appel s'il faut écrire la chaîne rendue ou le texte brut, en fonction du
+[`ColorChoice`](/reference/color-control/) global.
+
+## Ce que le déterminisme vous apporte
+
+- Les tests à sortie exacte (`assert_eq!` sur `to_string()`) sont stables sur
+  toutes les machines, tous les shells et en CI — le projet lui-même s'appuie
+  dessus dans ses tests de contrat.
+- Les journaux écrits dans des fichiers conservent leurs échappements (ou
+  n'en gardent aucun, si vous rendez explicitement) indépendamment de l'endroit
+  où le programme a tourné.
+- `format!` ne change jamais d'avis d'un environnement à l'autre.
+
+Le coût, c'est que `to_string()` seul ne peut pas respecter `NO_COLOR` — c'est
+une préoccupation d'impression par conception, et la frontière est délibérée.
+
+## Le contrat d'environnement de la famille print
+
+Quand une méthode d'impression s'exécute, elle vérifie si les couleurs sont
+activées. Si oui, la chaîne rendue va au flux ; si non, c'est le texte brut —
+les mêmes octets qu'un `strip_ansi` de la chaîne rendue produirait, sans code
+d'échappement résiduel ni séquence de lien. C'est pourquoi
+[`Span::link`](/reference/span/) n'a besoin d'aucun traitement spécial en
+mode brut : la branche brute ne l'émet jamais.
+
+## Ordre canonique et idempotence
+
+Dans une même séquence ANSI, les attributs sont émis d'abord — dans l'ordre
+fixe gras, atténué, italique, souligné, clignotant, inversé, masqué,
+barré — puis la couleur de premier plan, puis la couleur d'arrière-plan.
+Deux propriétés s'ensuivent :
+
+1. Le même style produit toujours la même séquence d'octets, quel que soit
+   l'ordre dans lequel les méthodes du builder ont été appelées.
+2. Répéter un attribut ne change rien ; le jeu de bits ne peut pas contenir
+   de doublon.
+
+Les deux propriétés sont couvertes par des tests de contrat à chaîne exacte
+dans le dépôt (`tests/contract.rs`), et toutes deux sont des changements de
+la v2 — la v1 émettait les attributs dans l'ordre d'insertion avec des
+doublons possibles.
+
+## Les styles bruts n'émettent rien
+
+Un style sans couleur ni attribut est *brut*, et un span brut se rend comme
+son texte nu : pas de séquence de départ, pas de réinitialisation. La
+réinitialisation n'est écrite que si une séquence de départ l'a été. Donc
+`Span::new("hi").to_string()` vaut exactement `"hi"` — pertinent quand vous
+stylez conditionnellement et ne voulez pas de bruit `ESC [m` vide.
+
+## La fonctionnalité no-color
+
+La fonctionnalité de compilation `no-color` retire entièrement la génération
+ANSI du binaire. Chaque méthode existe toujours et se comporte en passe-plat :
+`is_color_enabled()` renvoie `false`, les liens sont supprimés, et les outils
+texte, `Panel` et les aides de niveau continuent de fonctionner. La
+distinction avec `ColorChoice::Never` est la taille du binaire et
+l'impossibilité de réactiver à l'exécution.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Span" description="Les membres de rendu et d'impression dont cette page discute." href="/reference/span/" />

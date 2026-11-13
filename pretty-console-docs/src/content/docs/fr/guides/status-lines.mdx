@@ -1,0 +1,115 @@
+---
+title: Composer des lignes d'état
+description: "Construisez une ligne de terminal à partir de segments stylés différemment avec Line, et alignez-la avec les largeurs de format."
+type: how-to
+---
+
+Ce guide montre comment construire une seule ligne à partir de segments
+stylés différemment, comment les méthodes de style s'attachent aux segments,
+et comment aligner des lignes entières. Il suppose que vous savez déjà
+imprimer un [`Span`](/reference/span/) stylé.
+
+## Pousser des segments de gauche à droite
+
+[`Line`](/reference/line/) collecte des spans et les rend comme une seule
+ligne. Poussez un segment, puis stylez-le — les méthodes de style
+s'appliquent toujours au segment **poussé en dernier** :
+
+<Code lang="rust" code={`use pretty_console::Line;
+
+let line = Line::new()
+    .push("  build ").dim()
+    .push("cargo build --release").bold()
+    .push(" finished in ").push("4.2s").green();
+line.println();`} />
+
+Lisez la chaîne comme un curseur : `.push("...")` déplace le curseur sur un
+nouveau segment ; `.dim()`, `.bold()` et `.green()` restylent le segment sous
+le curseur. Le connecteur `" finished in "` ne reçoit aucun appel de style,
+donc il reste brut.
+
+## Comprendre la règle du dernier span
+
+Parce que le style s'applique au dernier segment poussé, l'ordre des appels
+`push` et de style décide de ce qui est coloré :
+
+<Code lang="rust" code={`use pretty_console::Line;
+
+// Le rouge s'applique à "world", pas à "hello ".
+let line = Line::new().push("hello ").push("world").red();`} />
+
+Si vous stylez avant d'avoir poussé quoi que ce soit, la ligne crée un
+segment de fin vide et le style — inoffensif, mais inutile. Stylez après le
+`push` dont vous voulez colorer le segment.
+
+## Construire une ligne depuis un itérateur
+
+Pour des segments qui existent déjà sous forme de spans, construisez
+directement :
+
+<Code lang="rust" code={`use pretty_console::{Line, Span, Styled};
+
+let spans = vec![
+    "status: ".styled(),
+    Span::new("ok").green().bold(),
+];
+let line = Line::from_spans(spans);`} />
+
+`Line` implémente aussi `FromIterator<Span>` et `From<Vec<Span>>`, donc
+`collect()` fonctionne sur des itérateurs de spans.
+
+## Restyler tous les spans d'un coup
+
+`with_style` fusionne un style dans **chaque** span de la ligne ; les
+couleurs du style fusionné l'emportent sur les couleurs par span, les
+attributs sont réunis :
+
+<Code lang="rust" code={`use pretty_console::{Line, Style};
+
+let line = Line::new().push("a ").push("b").red();
+let dimmed = line.with_style(Style::new().dim());`} />
+
+`map_span` réécrit chaque span à travers une fermeture quand vous avez besoin
+d'une logique par span.
+
+## Accumuler dans une boucle
+
+En boucle, collectez la ligne en réassignant le builder —
+[`Line`](/reference/line/) consomme et renvoie la ligne (`push_mut` ajoute en
+place quand vous n'avez pas besoin de styler le nouveau segment) :
+
+<Code lang="rust" code={`use pretty_console::Line;
+
+let mut line = Line::new();
+for (name, ok) in [("fmt", true), ("clippy", true), ("tests", false)] {
+    line = line.push(name);
+    if ok {
+        line = line.push(" ✓").green();
+    } else {
+        line = line.push(" ✗").red();
+    }
+    line = line.push("  ");
+}
+line.println();`} />
+
+## Aligner une ligne entière avec les largeurs de format
+
+`Display` pour `Line` remplit selon la largeur **visible** de la ligne — les
+échappements ANSI et les caractères larges CJK sont mesurés comme un terminal
+les rend :
+
+<Code lang="rust" code={`use pretty_console::Line;
+
+let line = Line::new().push("cache ").push("warm").green();
+println!("{:<20}|", line);`} />
+
+L'alignement à gauche, à droite et centré suit la spécification de format
+standard, et le remplissage est calculé à partir des colonnes visibles — donc
+les colonnes s'alignent même quand les segments contiennent des échappements
+ou du texte CJK.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Line" description="Chaque membre avec signature et sémantique." href="/reference/line/" />

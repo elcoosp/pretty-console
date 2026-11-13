@@ -1,0 +1,47 @@
+---
+title: Fonctions de dégradé et d'arc-en-ciel
+description: "Interpolation de couleur par caractère — gradient, gradient_bg, rainbow, rainbow_bg et hsv_to_rgb."
+type: reference
+---
+
+Les fonctions de décoration peignent une [`Line`](/reference/line/) dont les
+spans sont les caractères du texte, chacun portant sa propre couleur
+interpolée. Toutes sont `#[must_use]` et aucune n'alloue au-delà de la ligne
+résultante. Source : `src/decorate.rs`.
+
+## Signatures des fonctions
+
+| Fonction | Signature | Peint |
+| --- | --- | --- |
+| `gradient` | `pub fn gradient(text: &str, from: Color, to: Color) -> Line` | Interpolation du premier plan `from` → `to` |
+| `gradient_bg` | `pub fn gradient_bg(text: &str, from: Color, to: Color) -> Line` | Interpolation de l'arrière-plan |
+| `rainbow` | `pub fn rainbow(text: &str) -> Line` | Premier plan parcourant la roue chromatique complète |
+| `rainbow_bg` | `pub fn rainbow_bg(text: &str) -> Line` | Arrière-plan parcourant la roue chromatique complète |
+
+## Détails d'interpolation
+
+- Chaque caractère est son propre span ; `line.spans()` a une entrée par
+  caractère, espaces inclus.
+- Le paramètre d'interpolation est `t = i / (count − 1)` pour le caractère
+  `i` ; un texte à un seul caractère utilise `t = 0`.
+- `gradient` interpole en espace RVB via `Color::lerp`, donc les indices de
+  palette s'interpolent aussi en RVB.
+- `rainbow` mappe `t` via `hsv_to_rgb(t × 360, 1.0, 1.0)` — totalement
+  saturé, valeur pleine, une teinte par caractère.
+
+Le résultat s'imprime comme n'importe quelle ligne : il respecte
+[`ColorChoice`](/reference/color-control/) et se dégrade avec
+`render_with(level)`.
+
+## hsv_to_rgb
+
+`pub fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8)` — la conversion
+HSV → RVB standard. `h` est en degrés (les valeurs hors de `0..360`
+reviennent via `rem_euclid`) ; `s` et `v` sont dans `0.0..=1.0`. Renvoie des
+composantes 8 bits.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Ajouter dégradés, panneaux et hyperliens" description="Le guide orienté tâche avec exemples travaillés." href="/guides/decorations/" />

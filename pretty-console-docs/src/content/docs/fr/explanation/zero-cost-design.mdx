@@ -1,0 +1,84 @@
+---
+title: La conception zéro-coût
+description: "Comment pretty-console rend une sortie stylée sans allocation sur le tas, sans chaînes intermédiaires ni appels système répétés."
+type: explanation
+---
+
+pretty-console se décrit comme *zéro-coût*. Cette page explique ce que cela
+signifie concrètement — où sont allés les coûts, et ce qui reste. Les
+décisions consignées ici viennent du document de conception du projet
+(`docs/DESIGN.md` dans le dépôt) et du code lui-même.
+
+## Ce que zéro-coût signifie ici
+
+La crate n'alloue jamais pendant qu'elle *rend* une valeur stylée dans un
+formateur, et elle ne relit jamais l'environnement pendant l'impression.
+L'allocation se produit encore là où elle est intrinsèque : `Span` possède
+une `String`, et une `Line` possède son `Vec<Span>`. Ce qui a disparu, c'est
+la taxe cachée que la plupart des bibliothèques de style paient par valeur
+rendue.
+
+## Les styles sont des valeurs, pas des builders avec état
+
+`Style` est une petite struct `Copy` — un premier plan optionnel, un
+arrière-plan optionnel, un jeu de bits d'attributs. Construire, fusionner et
+cloner un style compile en déplacements de registres. Un `Vec<Attribute>` à
+la v1 était la première conclusion de l'audit : chaque appel de builder
+clonait une liste sur le tas. Dans la v2, tout le style peut vivre dans une
+`const` :
+
+<Code lang="rust" code={`use pretty_console::{Color, Style};
+
+const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);`} />
+
+## Le jeu de bits Effects
+
+Les attributs vivent dans un jeu de bits `u16`, un bit par attribut.
+Conséquences qui vont au-delà de la mémoire :
+
+- `.bold().bold()` émet un code, pas deux — les doublons sont structurellement
+  impossibles.
+- L'ordre d'émission est fixé par l'ordre des bits (gras → barré), pas par
+  l'ordre d'appel, ce qui rend la sortie testable par contrat.
+- `merge` est un seul `or`.
+
+## Écrire les codes directement dans le formateur
+
+`Display` pour `Span` écrit la séquence de départ SGR, le texte et la
+réinitialisation directement dans le `fmt::Formatter` de destination. Il n'y
+a pas de `String` intermédiaire dans les chemins `write!`/`print!`, et les
+chiffres décimaux des paramètres SGR sont écrits sans passer par `format!`.
+L'audit comptait au moins cinq allocations par rendu dans la v1 ; le chemin
+de rendu v2 n'en a aucune.
+
+## Une décision d'environnement, mise en cache
+
+Décider si les couleurs sont activées inspecte plusieurs variables
+d'environnement et stdout. Le faire à chaque ligne imprimée coûte des appels
+système. La v2 effectue la décision `Auto` une fois et la met en cache dans
+un atomique ; `set_color_choice` invalide le cache. Après la première
+impression, le chemin chaud ne fait plus aucun accès à l'environnement.
+
+## Largeur visible en une seule passe
+
+`truncate` et `pad` mesurent et réécrivent en une seule passe sur l'entrée,
+avec un scanner d'octets pour `strip_ansi` qui cherche le prochain `ESC` et
+copie les tranches entre eux. La table de largeur elle-même couvre les
+plages courantes CJK, emoji et combinantes sans tirer la crate
+`unicode-width` — un compromis documenté entre exactitude et garantie
+zéro-dépendance.
+
+## Ce que cela ne couvre pas
+
+Les chiffres de benchmark dans le README du dépôt ont été mesurés sur une VM
+Linux de classe CI ; reproduisez-les avec
+`cargo run --release --example bench` avant de les traiter comme vos propres
+chiffres. Et « zéro-coût » concerne l'allocation et les appels système — le
+rendu terminal lui-même, et l'approximation de largeur ci-dessus, restent des
+approximations pratiques de ce que fait n'importe quel terminal.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Rendu déterministe" description="L'autre moitié du contrat de sortie." href="/explanation/rendering-model/" />

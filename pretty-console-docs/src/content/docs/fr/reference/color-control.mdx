@@ -1,0 +1,93 @@
+---
+title: Contrôle des couleurs
+description: "ColorChoice, ColorLevel, la décision d'activation mise en cache et la précédence exacte des variables d'environnement."
+type: reference
+---
+
+Le module de choix contrôle si la sortie imprimée porte des couleurs et ce
+que le terminal peut afficher. Sources : `src/choice.rs`.
+
+## ColorChoice
+
+`pub enum ColorChoice { Auto, Always, Never }` — dérive `Debug`, `Clone`,
+`Copy`, `Default`, `PartialEq`, `Eq`, `Hash` ; le défaut est `Auto`.
+
+| Variante | Comportement à l'impression |
+| --- | --- |
+| `Auto` (défaut) | Inspecte l'environnement, puis la détection tty de stdout — décision mise en cache |
+| `Always` | Émet toujours les couleurs |
+| `Never` | N'émet jamais les couleurs |
+
+Seule la famille print respecte le choix (`print`, `println`, `eprint`,
+`eprintln`, `try_*`, `write_to`). Le rendu en chaîne ne le fait jamais — voir
+[Rendu déterministe](/explanation/rendering-model/).
+
+## Définir et lire le choix
+
+| Fonction | Signature | Notes |
+| --- | --- | --- |
+| `set_color_choice` | `pub fn set_color_choice(choice: ColorChoice)` | Stocke le choix et invalide le cache `Auto` |
+| `color_choice` | `pub fn color_choice() -> ColorChoice` | Le choix global actuel |
+
+## is_color_enabled
+
+`pub fn is_color_enabled() -> bool` — si les couleurs doivent être émises
+maintenant.
+
+- Avec la fonctionnalité `no-color` : toujours `false`.
+- `Always` → `true` ; `Never` → `false`.
+- `Auto` → la décision d'environnement, calculée une fois et mise en cache
+  dans un atomique (`0` inconnu, `1` faux, `2` vrai) ; `set_color_choice`
+  réinitialise le cache. La vérification d'environnement traite les valeurs
+  vides ou uniquement des espaces comme non définies.
+
+Les vérifications `Auto`, dans l'ordre :
+
+1. `FORCE_COLOR` défini sur une valeur non vide autre que `0` force les couleurs ; `FORCE_COLOR=0` les désactive.
+2. `CLICOLOR_FORCE` défini sur une valeur non vide autre que `0` force les couleurs.
+3. `NO_COLOR` défini sur une valeur non vide désactive les couleurs.
+4. `CLICOLOR=0` désactive les couleurs.
+5. `TERM=dumb` désactive les couleurs.
+6. Sinon, les couleurs ne sont émises que si stdout est un terminal.
+
+## supports_color_level
+
+`pub fn supports_color_level() -> Option<ColorLevel>` — le mode de couleur le
+plus riche que le terminal peut afficher exactement, ou `None` quand aucune
+couleur ne devrait être émise du tout. Ordre de détection :
+
+1. `FORCE_COLOR` : `0` → `None`, `1` → `Ansi16`, `2` → `Ansi256`, autre → `TrueColor`
+2. `CLICOLOR_FORCE` (non-`0`) → `Ansi16`
+3. `NO_COLOR` → `None`
+4. `CLICOLOR=0` → `None`
+5. `TERM=dumb` → `None`
+6. `COLORTERM` valant `truecolor` ou `24bit` → `TrueColor`
+7. `TERM` contenant `256color` → `Ansi256` ; `TERM` contenant `direct` → `TrueColor` ; tout autre `TERM` → `Ansi16`
+8. stdout un tty → `TrueColor`
+9. Sinon `None`
+
+## ColorLevel
+
+`pub enum ColorLevel { Ansi16, Ansi256, TrueColor }` — dérive `Debug`,
+`Clone`, `Copy`, `Default`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash` ;
+le défaut est `Ansi16`. L'ordre `Ord` va du moins au plus capable.
+
+## Variables d'environnement
+
+| Variable | Effet sur l'activation | Effet sur la capacité |
+| --- | --- | --- |
+| `FORCE_COLOR` | `0` off ; non-`0` on | `1` → Ansi16, `2` → Ansi256, `3`/autre → TrueColor |
+| `CLICOLOR_FORCE` | non-`0` force on | force Ansi16 |
+| `NO_COLOR` | non vide désactive | désactive |
+| `CLICOLOR` | `0` désactive | désactive |
+| `TERM` | `dumb` désactive | `256color` → Ansi256, `direct` → TrueColor, autre → Ansi16 |
+| `COLORTERM` | — | `truecolor`/`24bit` → TrueColor |
+
+`FORCE_COLOR` l'emporte sur `CLICOLOR_FORCE` ; les deux l'emportent sur
+`NO_COLOR`. Les valeurs vides comptent comme non définies partout.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Contrôler les couleurs à l'exécution" description="Le guide orienté tâche, incluant le câblage d'un drapeau --color." href="/guides/runtime-color-control/" />

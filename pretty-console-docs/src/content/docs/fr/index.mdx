@@ -1,0 +1,32 @@
+---
+title: pretty-console
+description: "La boîte à outils de style de terminal fluide et zéro-coût pour Rust."
+template: splash
+hero:
+  title: pretty-console
+  tagline: "La boîte à outils de style de terminal fluide et zéro-coût pour Rust — spans, lignes, panneaux, dégradés, hyperliens et outils texte compatibles ANSI, sans aucune dépendance."
+  image:
+    file: ../../../assets/logo.png
+    alt: Logo pretty-console
+  actions:
+    - text: Commencer
+      link: /tutorials/getting-started/
+      icon: right-arrow
+    - text: Voir sur GitHub
+      link: https://github.com/elcoosp/pretty-console
+      icon: external
+      variant: minimal
+---
+
+import { CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard title="Tutoriels" description="Apprenez en construisant : installez la crate et imprimez vos premières lignes stylées." href="/tutorials/getting-started/" />
+  <LinkCard title="Guides pratiques" description="Résolvez un problème précis : styles réutilisables, lignes d'état, dégradation, panneaux et plus." href="/guides/reusable-styles/" />
+  <LinkCard title="Référence" description="Consultez avec précision n'importe quel membre de Span, Style, Color, Line, Panel ou macro." href="/reference/span/" />
+  <LinkCard title="Explication" description="Comprenez la conception zéro-coût, le modèle de rendu et pourquoi la v2 existe." href="/explanation/zero-cost-design/" />
+</CardGrid>
+
+<LinkButton href="/tutorials/getting-started/" icon="right-arrow">Commencer le tutoriel</LinkButton>
+
+Rust 1.85+ · Édition 2024 · Zéro dépendance · `#![forbid(unsafe_code)]` · [crates.io](https://crates.io/crates/pretty-console) · [docs.rs](https://docs.rs/pretty_console)

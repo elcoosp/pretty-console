@@ -1,0 +1,95 @@
+---
+title: Color
+description: "Indices de palette et couleurs RVB 24 bits — constructeurs, analyse hexadécimale, codes SGR, luminance, contraste et dégradation."
+type: reference
+---
+
+`Color` est une énumération `Copy` : `Color::Named(u8)` est un indice dans la
+table de palette 256 couleurs, `Color::RGB(u8, u8, u8)` est une couleur
+24 bits. Elle dérive `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`.
+Source : `src/color.rs`.
+
+## Constantes et constructeurs
+
+Les seize entrées de palette de base, dans l'ordre des indices :
+
+| Constante | Indice | Constante | Indice |
+| --- | --- | --- | --- |
+| `BLACK` | 0 | `BRIGHT_BLACK` | 8 |
+| `RED` | 1 | `BRIGHT_RED` | 9 |
+| `GREEN` | 2 | `BRIGHT_GREEN` | 10 |
+| `YELLOW` | 3 | `BRIGHT_YELLOW` | 11 |
+| `BLUE` | 4 | `BRIGHT_BLUE` | 12 |
+| `MAGENTA` | 5 | `BRIGHT_MAGENTA` | 13 |
+| `CYAN` | 6 | `BRIGHT_CYAN` | 14 |
+| `WHITE` | 7 | `BRIGHT_WHITE` | 15 |
+
+| Constructeur | Signature | Notes |
+| --- | --- | --- |
+| `indexed` | `pub const fn indexed(index: u8) -> Self` | Identique à `Color::Named(index)` |
+| `rgb` | `pub const fn rgb(red: u8, green: u8, blue: u8) -> Self` | Couleur 24 bits |
+| `hex` | `pub const fn hex(value: u32) -> Self` | Compact `0xRRGGBB` ; `hex(0x00FF7F)` vaut `RGB(0, 255, 127)` |
+
+## Analyse des chaînes hexadécimales
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `from_hex_str` | `pub fn from_hex_str(input: &str) -> Result<Self, ParseColorError>` | Accepte `"#7c4dff"`, `"7c4dff"`, `"#f0a"` |
+| `FromStr` | `type Err = ParseColorError` | Délègue à `from_hex_str` |
+
+`ParseColorError` dérive `Debug`, `Clone`, `Copy`, `PartialEq`, `Eq`, `Hash`
+et implémente `Error` + `Display` :
+
+| Variante | Message d'affichage |
+| --- | --- |
+| `InvalidLength` | `invalid color: expected 3 or 6 hex digits, optionally prefixed with '#'` |
+| `InvalidDigit(char)` | `invalid hex digit: '…'` |
+
+## Accesseurs de paramètres SGR
+
+| Membre | Signature | Sortie |
+| --- | --- | --- |
+| `fg_code` | `pub fn fg_code(&self) -> String` | `38;5;n` (palette) ou `38;2;r;g;b` (RVB) |
+| `bg_code` | `pub fn bg_code(&self) -> String` | `48;5;n` ou `48;2;r;g;b` |
+
+Ces accesseurs allouent pour la commodité ; la machinerie de rendu écrit les
+mêmes paramètres dans le formateur sans `String` intermédiaire.
+
+## Mathématique des couleurs
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `rgb_value` | `pub fn rgb_value(&self) -> (u8, u8, u8)` | Triplet sRGB concret ; les entrées de palette résolues via la palette xterm standard |
+| `luminance` | `pub fn luminance(&self) -> f32` | Luminance relative sRGB WCAG, `0.0` (noir) à `1.0` (blanc) |
+| `readable_on` | `pub fn readable_on(&self) -> Color` | Blanc quand `luminance() <= 0.17832548`, noir sinon — le croisement WCAG 4.5:1 |
+| `lerp` | `pub fn lerp(self, other: Self, t: f32) -> Self` | Interpolation linéaire en espace RVB ; `t` borné, `t <= 0` donne `self`, `t >= 1` donne `other` |
+
+## Dégradation
+
+| Membre | Signature | Notes |
+| --- | --- | --- |
+| `to_256` | `pub fn to_256(self) -> Self` | Entrée de palette 256 la plus proche : le cube 6×6×6 (niveaux `0, 95, 135, 175, 215, 255`) contre la rampe de gris à 24 pas (232–255), la plus proche |
+| `to_16` | `pub fn to_16(self) -> Self` | La plus proche des seize couleurs de base, par distance RVB au carré |
+| `degrade_to` | `pub fn degrade_to(self, level: ColorLevel) -> Self` | `TrueColor` → inchangé ; `Ansi256` → RVB vers `to_256`, palette inchangée ; `Ansi16` → indices de palette ≤ 15 inchangés, tout le reste vers `to_16` |
+| `level` | `pub fn level(self) -> ColorLevel` | Niveau minimal pour un affichage exact : palette ≤ 15 → `Ansi16`, palette > 15 → `Ansi256`, RVB → `TrueColor` |
+
+## palette_rgb
+
+`pub fn palette_rgb(index: u8) -> (u8, u8, u8)` résout tout indice de
+palette 256 vers sa valeur RVB xterm standard : les indices 0–15 utilisent la
+table de base, 16–231 le cube 6×6×6, 232–255 la rampe de gris
+`8 + 10·(index − 232)`.
+
+## Implémentations de traits
+
+| Implémentation | Résultat |
+| --- | --- |
+| `From<u8>` | `Color::Named(index)` |
+| `From<(u8, u8, u8)>` | `Color::RGB(r, g, b)` |
+| `FromStr` | Analyse de chaîne hexadécimale, identique à `from_hex_str` |
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Dégarder les couleurs" description="Le guide orienté tâche sur les niveaux de capacité." href="/guides/degrade-colors/" />

@@ -1,0 +1,60 @@
+---
+title: Panel
+description: "Boîtes arrondies, bordées, avec un titre incrusté — méthodes de builder, défauts et calcul de la largeur."
+type: reference
+---
+
+`Panel` rend une boîte arrondie (`╭ ─ ╮ │ ╰ ─ ╯`) contenant des
+[`Line`](/reference/line/) stylées avec un titre optionnel incrusté dans la
+bordure supérieure. Il dérive `Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`, et
+`Default` équivaut à `Panel::new()`. Source : `src/panel.rs`.
+
+## Méthodes de builder et défauts
+
+| Méthode | Signature | Défaut | Notes |
+| --- | --- | --- | --- |
+| `new` | `pub const fn new() -> Self` | — | Remplissage 1, bordure brute, pas de titre, pas de largeur fixe |
+| `title` | `pub fn title(self, title: impl Into<String>) -> Self` | aucun | Incrusté comme `─ Title` (titre, une espace, puis des tirets) dans la bordure supérieure ; le titre garde son propre style |
+| `line` | `pub fn line(self, line: impl Into<Line>) -> Self` | vide | Accepte une `Line`, un `Span`, ou une chaîne brute |
+| `lines` | `pub fn lines(self, lines: impl IntoIterator<Item = impl Into<Line>>) -> Self` | vide | Ajoute plusieurs à la fois |
+| `width` | `pub fn width(self, width: usize) -> Self` | aucune (auto) | Largeur intérieure du contenu ; voir ci-dessous |
+| `padding` | `pub fn padding(self, padding: usize) -> Self` | `1` | Remplissage horizontal de chaque côté du contenu |
+| `border` | `pub fn border(self, style: Style) -> Self` | brute | Style des caractères de bordure et des tirets séparateurs du titre |
+
+Les spans de contenu gardent leurs propres styles ; seuls les caractères de
+bordure et de séparateur prennent le style de bordure.
+
+## Calcul de la largeur
+
+`content_width(&self) -> usize` renvoie la largeur entre les barres
+verticales :
+
+- avec une largeur explicite : `(width + 2 × padding)`, relevée pour tenir le
+  titre ;
+- sans : `max(widest line) + 2 × padding`, relevée pour tenir le titre.
+
+Le minimum du titre est `visible_width(title) + 2 × padding + 1`.
+
+Avec une largeur fixée, les lignes plus larges que le corps sont tronquées
+avec une ellipse (`…`) ; sans largeur fixée, la boîte s'élargit à la ligne la
+plus large.
+
+## Rendu
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Déterministe |
+| `render_plain` | `pub fn render_plain(&self) -> String` | Tous les échappements retirés, pour les journaux et les tests |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Respecte `ColorChoice` ; faillible |
+| `print` | stdout | Panique en cas d'échec |
+| `println` | stdout + saut de ligne | Panique en cas d'échec |
+
+`Display` rend comme `render`. Les lignes de contenu sont remplies à la
+largeur du corps avec `pad` en utilisant la largeur visible, donc le contenu
+CJK maintient la bordure alignée.
+
+## Étapes suivantes
+
+import { LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Ajouter dégradés, panneaux et hyperliens" description="Le guide orienté tâche, incluant la troncature à largeur fixe." href="/guides/decorations/" />

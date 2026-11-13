@@ -1,0 +1,89 @@
+---
+title: Migrer depuis la 1.x
+description: "Faites passer une base de code pretty-console 1.x à la 2.0 — ce qui continue de compiler, ce qui casse, et quoi mettre à jour."
+type: how-to
+---
+
+Ce guide liste les étapes concrètes pour passer de pretty-console 1.x à 2.0,
+avec les changements incompatibles exacts et leurs correctifs. Pour le
+raisonnement derrière la refonte, voir
+[Comment la v2 a vu le jour](/explanation/design-history/).
+
+## Augmenter la dépendance
+
+<Code lang="sh" code={`cargo add pretty-console@2.0.0`} />
+
+La 2.0 nécessite Rust 1.85 ou plus récent (édition 2024). Vérifiez votre
+`rust-toolchain.toml` et votre matrice de CI avant de continuer.
+
+## Garder ou renommer Console
+
+`Console` existe toujours comme alias de type de [`Span`](/reference/span/),
+donc le code existant `Console::new("...").red().println()` continue de
+compiler. Le nouveau code devrait épeler le type `Span` :
+
+<Code lang="rust" code={`use pretty_console::Span;
+
+// Avant : Console::new("hi").red();
+// Maintenant :
+let span = Span::new("hi").red();`} />
+
+`Console::new_with_style` continue aussi de fonctionner ; les graphies
+natives Span sont `Span::new_with_style(text, style)` et `Style::paint(text)`.
+
+## Corriger les tests à sortie exacte
+
+Les codes d'attributs sont maintenant émis dans l'**ordre canonique**
+(gras → atténué → italique → souligné → clignotant → inversé → masqué →
+barré), suivi de la couleur de premier plan, puis de la couleur
+d'arrière-plan — pas l'ordre d'insertion — et les doublons sont supprimés. Si
+vous figez des chaînes d'échappement exactes, mettez-les à jour :
+
+<Code lang="rust" code={`// Avant (1.x, ordre d'insertion, doublons possibles) :
+//   bold().bold() pouvait émettre "1;1"
+// Maintenant : un seul code, position canonique :
+assert_eq!(
+    Span::new("hi").bold().bold().to_string(),
+    "\\x1b[1mhi\\x1b[0m"
+);`} />
+
+La dépendance de dev `insta` a disparu ; le projet lui-même vérifie
+désormais des chaînes exactes dans des tests de contrat. Si vous ne
+dépendiez d'`insta` que pour la sortie pretty-console, un simple `assert_eq!`
+sur `to_string()` est le remplacement pris en charge.
+
+## Mettre à jour les consommateurs de attributes()
+
+`Style::attributes()` rendait `&[Attribute]`. Elle renvoie maintenant un jeu
+de bits `Effects` — une valeur `Copy` avec `has`, `contains`, `insert`,
+`remove`, `union` et un itérateur `attributes()` :
+
+<Code lang="rust" code={`use pretty_console::{Attribute, Style, Styled};
+
+let style = Style::new().bold().underline();
+let effects = style.attributes();
+assert!(effects.has(Attribute::Bold));
+assert_eq!(effects.attributes().count(), 2);`} />
+
+Le code qui testait le contenu d'une tranche devrait interroger le jeu de
+bits avec `has(Attribute::…)` ou `contains(Effects::…)` à la place.
+
+## Adopter les graphies natives Span
+
+Les renommages suivants sont mécaniques :
+
+| 1.x | 2.0 |
+| --- | --- |
+| `Console` | `Span` (alias conservé) |
+| `Console::new_with_style` | `Span::new_with_style` / `Style::paint` |
+| `&[Attribute]` issu de `attributes()` | jeu de bits `Effects` |
+| codes d'attributs dans l'ordre d'insertion | ordre canonique, dédupliqué |
+
+Tout le reste — aides de niveau, `banner`, le trait `Styled` — a gardé sa
+signature v1.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Comment la v2 a vu le jour" description="Les conclusions de l'audit et les décisions derrière la refonte." href="/explanation/design-history/" />

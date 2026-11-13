@@ -1,0 +1,57 @@
+---
+title: Macros
+description: "paint!, style! et line! — style à usage unique sans builders écrits à la main."
+type: reference
+---
+
+Trois macros déclaratives construisent des valeurs stylées en une seule
+expression. Elles sont exportées à la racine de la crate (`#[macro_export]`).
+Source : `src/macros.rs`.
+
+## paint!
+
+`paint!(method+, format-args…) -> Span` — construit un
+[`Span`](/reference/span/) à partir d'arguments `format!` et d'une liste de
+noms de méthodes de style :
+
+<Code lang="rust" code={`use pretty_console::paint;
+
+let msg = paint!(green bold, "{} tests passed", 12);
+msg.println();`} />
+
+## style!
+
+`style!(method+) -> Style` — construit un [`Style`](/reference/style/) de la
+même façon :
+
+<Code lang="rust" code={`use pretty_console::style;
+
+let danger = style!(bold red on_white);
+danger.paint("boom").println();`} />
+
+## line!
+
+`line!(span, …) -> Line` — construit une [`Line`](/reference/line/) en
+poussant chaque expression (spans ou chaînes brutes) :
+
+<Code lang="rust" code={`use pretty_console::line;
+
+let row = line!("cache ", "warm", " · 42 entries");
+row.println();`} />
+
+## Contraintes
+
+- La liste de méthodes accepte tout nom de méthode de builder `Span`/`Style`
+  sans argument : couleurs (`red`, `bright_blue`), arrière-plans (`on_white`),
+  attributs (`bold`, `underline`).
+- Les méthodes qui prennent des arguments — `fg_rgb`, `fg_hex`, `fg`, `bg`,
+  `attr`, `effects` — ne peuvent pas figurer dans la liste ; utilisez la
+  chaîne de builder habituelle pour celles-ci.
+- Les méthodes sont appliquées de gauche à droite ; parce que les attributs
+  sont idempotents et que les couleurs écrasent, les noms tardifs l'emportent.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Span" description="Les méthodes de builder que les macros acceptent." href="/reference/span/" />

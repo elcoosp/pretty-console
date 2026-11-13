@@ -1,0 +1,144 @@
+---
+title: Span
+description: "Le cœur de la chaîne stylée — constructeurs, builders de style, aides de niveau, hyperliens, rendu et impression."
+type: reference
+---
+
+`Span` est une chaîne stylée : texte, un [`Style`](/reference/style/), et un
+hyperlien OSC 8 optionnel. Il dérive `Debug`, `Clone`, `Default`,
+`PartialEq`, `Eq`, `Hash`, et implémente `Display` avec remplissage selon la
+largeur visible. Le nom de la v1 `Console` survit comme alias de type.
+Source : `src/span.rs`.
+
+## Constructeurs
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `new` | `pub fn new(text: impl Into<String>) -> Self` | Style brut, pas de lien |
+| `new_with_style` | `pub fn new_with_style(text: impl Into<String>, style: Style) -> Self` | Style préconstruit |
+| `with_style` | `pub fn with_style(text: impl Into<String>, style: Style) -> Self` | Alias de `new_with_style` |
+| `with_text` | `pub fn with_text(&self, text: impl Into<String>) -> Self` | Garde style et lien, remplace le texte |
+| `info` | `pub fn info(text: impl Into<String>) -> Self` | Préfixe `[INFO]`, cyan |
+| `warn` | `pub fn warn(text: impl Into<String>) -> Self` | Préfixe `[WARN]`, jaune |
+| `error` | `pub fn error(text: impl Into<String>) -> Self` | Préfixe `[ERROR]`, rouge gras |
+| `success` | `pub fn success(text: impl Into<String>) -> Self` | Préfixe `[OK]`, vert gras |
+| `debug` | `pub fn debug(text: impl Into<String>) -> Self` | Préfixe `[DEBUG]`, atténué |
+| `banner` | `pub fn banner(title: impl Into<String>, width: usize) -> Self` | Bannière centrée pleine largeur, cyan gras |
+
+## Accesseurs texte et style
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `text` | `pub fn text(&self) -> &str` | Le texte non stylé |
+| `set_text` | `pub fn set_text(&mut self, text: impl Into<String>)` | Remplacement en place |
+| `style` | `pub const fn style(&self) -> &Style` | Le style détenu |
+| `set_style` | `pub fn set_style(&mut self, style: Style)` | Remplacement en place |
+| `styled_with` | `pub fn styled_with(self, style: Style) -> Self` | Forme builder de `set_style` |
+
+## Méthodes de builder de style
+
+Toutes les méthodes de builder consomment `self` et renvoient `Self`. Les
+couleurs fixent le premier plan (`fg*`) ou l'arrière-plan (`bg*`, `on_*`) du
+style détenu ; les méthodes d'attributs insèrent dans le jeu de bits
+[`Effects`](/reference/style/) du style.
+
+| Groupe | Méthodes |
+| --- | --- |
+| Setters directs | `fg(Color)`, `bg(Color)`, `fg_rgb(u8, u8, u8)`, `bg_rgb(u8, u8, u8)`, `fg_hex(u32)`, `bg_hex(u32)`, `attr(Attribute)`, `effects(Effects)` |
+| Premier plan | `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `bright_black`, `bright_red`, `bright_green`, `bright_yellow`, `bright_blue`, `bright_magenta`, `bright_cyan`, `bright_white` |
+| Arrière-plan | `on_black`, `on_red`, `on_green`, `on_yellow`, `on_blue`, `on_magenta`, `on_cyan`, `on_white`, `on_bright_black`, `on_bright_red`, `on_bright_green`, `on_bright_yellow`, `on_bright_blue`, `on_bright_magenta`, `on_bright_cyan`, `on_bright_white` |
+| Attributs | `bold`, `dim`, `italic`, `underline`, `blink`, `reverse`, `hidden`, `strikethrough` |
+| Conditionnel | `when(bool, impl FnOnce(Self) -> Self)` |
+
+## Aides de niveau
+
+Les constructeurs `info`, `warn`, `error`, `success` et `debug` préfixent le
+texte d'un tag et appliquent un style fixe :
+
+| Constructeur | Tag | Style |
+| --- | --- | --- |
+| `info` | `[INFO]` | cyan |
+| `warn` | `[WARN]` | jaune |
+| `error` | `[ERROR]` | rouge gras |
+| `success` | `[OK]` | vert gras |
+| `debug` | `[DEBUG]` | atténué |
+
+## Bannière
+
+`banner(title, width)` construit une règle horizontale avec le titre centré,
+stylée cyan et gras. Le caractère de règle est `─` ; la largeur du titre est
+mesurée avec `chars().count()`. Quand `width` est trop petit pour laisser au
+moins deux tirets de chaque côté (moins de 4 tirets au total), c'est le titre
+brut stylé cyan et gras qui est renvoyé à la place.
+
+## Hyperliens
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `link` | `pub fn link(self, url: impl Into<Box<str>>) -> Self` | Attache une URL OSC 8 |
+| `unlink` | `pub fn unlink(self) -> Self` | Retire toute URL |
+| `url` | `pub fn url(&self) -> Option<&str>` | L'URL actuelle |
+
+Un lien se rend comme `ESC ]8;;URL ESC \` avant le texte stylé et
+`ESC ]8;; ESC \` après. Les liens sont supprimés sous la fonctionnalité
+`no-color` et à l'impression avec les couleurs désactivées.
+
+## Rendu
+
+| Méthode | Signature | Notes |
+| --- | --- | --- |
+| `render` | `pub fn render(&self) -> String` | Déterministe ; ne consulte jamais l'environnement |
+| `render_with` | `pub fn render_with(&self, level: ColorLevel) -> String` | Dégarde d'abord les couleurs à `level` |
+| `write_to` | `pub fn write_to(&self, writer: &mut impl io::Write) -> io::Result<()>` | Respecte `ColorChoice` ; faillible |
+
+`Display` (et donc `to_string`) rend comme `render`. Quand une largeur de
+format est présente, le remplissage est calculé à partir de la largeur de
+texte visible (compatible CJK), en respectant le remplissage et l'alignement
+de la spécification.
+
+## Impression
+
+Toutes les méthodes ci-dessous écrivent sur stdout ou stderr, en respectant
+le [`ColorChoice`](/reference/color-control/) global.
+
+| Méthode | Flux | Saut de ligne | Échec |
+| --- | --- | --- | --- |
+| `print` | stdout | non | panique |
+| `println` | stdout | oui | panique |
+| `eprint` | stderr | non | panique |
+| `eprintln` | stderr | oui | panique |
+| `try_print` | stdout | non | `io::Result<()>` |
+| `try_println` | stdout | oui | `io::Result<()>` |
+| `try_eprint` | stderr | non | `io::Result<()>` |
+| `try_eprintln` | stderr | oui | `io::Result<()>` |
+
+## Le trait d'extension Styled
+
+`Styled` est implémenté pour tout `T: AsRef<str> + ?Sized` et peint les
+valeurs de type chaîne en place. `styled()` enveloppe la valeur dans un
+`Span` brut ; toute autre méthode délègue au builder `Span` correspondant et
+renvoie un `Span` :
+
+<Code lang="rust" code={`use pretty_console::Styled;
+
+let span = "hello".red().bold();`} />
+
+Le trait porte `styled`, les seize couleurs de premier plan, les seize
+arrière-plans `on_*`, et les huit méthodes d'attributs — les mêmes noms que
+les tables de builder `Span` ci-dessus.
+
+## Dérivations et implémentations de traits
+
+| Implémentation | Comportement |
+| --- | --- |
+| `Default` | Texte vide, style brut, pas de lien |
+| `From<&str>`, `From<String>` | Identique à `Span::new` |
+| `Display` | Rendu avec remplissage selon la largeur visible |
+
+`Console` vaut `pub type Console = Span;`, conservé pour la compatibilité v1.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Rendu déterministe" description="Pourquoi to_string ne consulte jamais l'environnement." href="/explanation/rendering-model/" />

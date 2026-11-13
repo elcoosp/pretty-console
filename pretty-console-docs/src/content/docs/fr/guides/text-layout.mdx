@@ -1,0 +1,91 @@
+---
+title: Mesurer, tronquer et remplir du texte
+description: "Mesurez la largeur visible (compatible ANSI et CJK), tronquez avec une ellipse, et remplissez des colonnes qui s'alignent."
+type: how-to
+---
+
+Ce guide montre comment mesurer, tronquer et remplir des chaînes exactement
+comme un terminal les rend — y compris les chaînes qui contiennent déjà des
+échappements ANSI ou des caractères larges. Utilisez-le dès que vous disposez
+des tableaux, des barres de progression ou des colonnes. Pour la grammaire
+complète des échappements et les tables de plages, voir
+[Outils texte](/reference/text-tools/).
+
+## Mesurer correctement la largeur visible
+
+`visible_width` compte les colonnes de terminal. Les séquences d'échappement
+comptent comme zéro, les caractères larges CJK comptent comme deux, les
+marques combinantes comptent comme zéro :
+
+<Code lang="rust" code={`use pretty_console::{visible_width, Styled};
+
+assert_eq!(visible_width("héllo"), 5);
+assert_eq!(visible_width("日本語"), 6);          // trois caractères larges
+assert_eq!(visible_width(&"hi".red().to_string()), 2); // les échappements sont de largeur nulle`} />
+
+La brique à un seul caractère est `char_width`.
+
+## Tronquer à un budget de colonnes
+
+`truncate` coupe à `max_width` colonnes visibles et ajoute la queue quand une
+troncature a lieu :
+
+<Code lang="rust" code={`use pretty_console::truncate;
+
+assert_eq!(truncate("hello world", 8, "…"), "hello w…");
+assert_eq!(truncate("short", 8, "…"), "short");`} />
+
+Trois détails comptent dans de vrais pipelines :
+
+1. Les séquences d'échappement survivent et ne comptent pas dans le budget —
+   les chaînes stylées se tronquent à la même forme visible que les brutes.
+2. Si un échappement a été émis, une séquence de réinitialisation est ajoutée
+   après la queue, donc une troncature ne peut pas fuir de styles dans le
+   reste de votre sortie.
+3. Quand `max_width` est inférieur à la queue, la queue dépasse le budget
+   plutôt que de disparaître — vérifiez vos largeurs minimales.
+
+## Remplir et aligner des colonnes
+
+`pad` élargit une chaîne à exactement `width` colonnes visibles avec un
+caractère de remplissage, en choisissant un côté via `Align` :
+
+<Code lang="rust" code={`use pretty_console::{pad, Align};
+
+assert_eq!(pad("hi", 4, Align::Left, '.'), "hi..");
+assert_eq!(pad("hi", 4, Align::Right, '.'), "..hi");
+assert_eq!(pad("hi", 5, Align::Center, '.'), ".hi..");`} />
+
+`pad` ne coupe jamais : une entrée plus large que `width` revient inchangée.
+Combinez avec `truncate` quand vous avez besoin des deux directions.
+
+## Compter sur le remplissage à largeur de format pour les valeurs stylées
+
+`Display` pour [`Span`](/reference/span/) et [`Line`](/reference/line/)
+calcule le remplissage à partir de la largeur visible, donc les spécificateurs
+de format standard alignent les valeurs stylées sans travail supplémentaire :
+
+<Code lang="rust" code={`use pretty_console::Styled;
+
+let rows = [("fmt", "ok"), ("clippy", "ok"), ("tests", "failed")];
+for (name, status) in rows {
+    let status_span = if status == "ok" {
+        status.green()
+    } else {
+        status.red().bold()
+    };
+    println!("{:<10}| {}", name, status_span);
+}`} />
+
+Le `{:<10}` remplit le nom brut ; le statut stylé n'a pas besoin de
+compensation de remplissage, parce que `{}` sur un span ne compte jamais ses
+échappements. C'est la différence avec
+`format!("{:<10}", "hi".red().to_string())`, qui remplirait la chaîne
+échappée à la mauvaise largeur visuelle — utilisez `pad` pour les chaînes
+pré-rendues.
+
+## Étapes suivantes
+
+import { Code, LinkCard } from '@astrojs/starlight/components';
+
+<LinkCard title="Outils texte" description="Chaque fonction avec paramètres, retours et cas limites." href="/reference/text-tools/" />
