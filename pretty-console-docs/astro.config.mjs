@@ -29,11 +29,11 @@ export default await defineDocsConfig({
 
                         sidebar: [
                                 {
-                                        label: 'Tutorials', translations: { fr: 'Tutoriels' },
+                                        label: 'Tutorials',
                                         items: [{ label: 'Getting started', slug: 'tutorials/getting-started' }], translations: { fr: "Commencer" }
                                 },
                                 {
-                                        label: 'How-to guides', translations: { fr: 'Guides pratiques' },
+                                        label: 'How-to guides',
                                         items: [
                                                 { label: 'Reuse and merge styles', translations: { fr: "Réutiliser et fusionner des styles" }, slug: 'guides/reusable-styles' },
                                                 { label: 'Compose status lines', translations: { fr: "Composer des lignes d'état" }, slug: 'guides/status-lines' },
@@ -46,7 +46,7 @@ export default await defineDocsConfig({
                                         ]
                                 },
                                 {
-                                        label: 'Reference', translations: { fr: 'Référence' },
+                                        label: 'Reference',
                                         items: [
                                                 { label: 'Span', translations: { fr: "Span" }, slug: 'reference/span' },
                                                 { label: 'Style, Attribute and Effects', translations: { fr: "Style, attribut et effets" }, slug: 'reference/style' },
@@ -56,11 +56,11 @@ export default await defineDocsConfig({
                                                 { label: 'Gradient and rainbow functions', translations: { fr: "Fonctions de dégradé et d'arc-en-ciel" }, slug: 'reference/decorations' },
                                                 { label: 'Text tools', translations: { fr: "Outils de texte" }, slug: 'reference/text-tools' },
                                                 { label: 'Color control', translations: { fr: "Contrôle des couleurs" }, slug: 'reference/color-control' },
-                                                { label: 'Macros', translations: { fr: "Macros" }, slug: 'reference/macros' },
+                                                { label: 'Macros', slug: 'reference/macros' },
                                         ]
                                 },
                                 {
-                                        label: 'Explanation', translations: { fr: 'Explication' },
+                                        label: 'Explanation',
                                         items: [
                                                 { label: 'The zero-cost design', translations: { fr: "La conception à coût zéro" }, slug: 'explanation/zero-cost-design' },
                                                 { label: 'Deterministic rendering', translations: { fr: "Rendu déterministe" }, slug: 'explanation/rendering-model' },
