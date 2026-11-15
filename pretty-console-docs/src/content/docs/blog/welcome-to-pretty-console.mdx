@@ -1,0 +1,69 @@
+---
+title: Terminal styling in Rust without heap allocations or dependencies
+date: 2026-11-15
+cover:
+  alt: Pretty Console Architecture
+  image: ./welcome-cover.jpg
+image: ./welcome-cover.jpg
+---
+
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+
+Most terminal styling crates either heap-allocate a `String` every time you chain `.red().bold()`, or stop at basic ANSI colors and leave you to handle word wrapping, CJK column widths, and terminal capability downgrades yourself.
+
+We built `pretty-console` (`v2.0.0`) to keep rendering allocation-free while shipping the layout and capability tools real CLIs actually need.
+
+## The Goal
+
+We wanted a zero-dependency crate (`#![forbid(unsafe_code)]`) where styles are small `Copy` values usable in `const` contexts, `Display` writes SGR escape sequences straight into the target `Formatter`, and complex features like gradients, rounded panels, OSC 8 hyperlinks, and ANSI-aware word wrapping work out of the box.
+
+## The Architecture
+
+A `Style` packs foreground color, background color, and an `Effects` bitset into a `Copy` struct—no `Vec<Attribute>` on the heap. Attributes emit in canonical order with duplicates collapsed, and printing caches terminal detection (`NO_COLOR`, `CLICOLOR`, `FORCE_COLOR`, `COLORTERM`, `TERM`) on first use so subsequent prints make zero environment syscalls.
+
+<CardGrid stagger>
+  <Card title="Allocation-Free Rendering" icon="rocket">
+    `write!` and `print!` stream ANSI SGR codes directly to the formatter without building intermediate `String` buffers.
+  </Card>
+  <Card title="Adaptive Color Degradation" icon="setting">
+    `supports_color_level` inspects `COLORTERM`, `FORCE_COLOR`, and `TERM`, and `render_with` downgrades 24-bit RGB to 256-color or 16-color palettes.
+  </Card>
+  <Card title="ANSI & CJK Text Tools" icon="puzzle">
+    `visible_width`, `truncate`, `pad`, and `wrap` measure full-width CJK characters as 2 columns and close/reopen SGR codes across line breaks.
+  </Card>
+  <Card title="Panels, Gradients & Links" icon="approve-check">
+    Supports multi-segment `Line` composition, truecolor `gradient` fades, rounded `Panel` boxes with soft wrapping, and OSC 8 terminal hyperlinks.
+  </Card>
+</CardGrid>
+
+## What it cost
+
+Writing a CJK-aware word wrapper that preserves ANSI state across line breaks without leaking escape codes onto the next line took far more edge-case testing than the color types themselves. We also replaced `insta` snapshot tests with exact-string contract tests so every emitted escape sequence is verified byte for byte.
+
+<Aside type="caution" title="Where this does not apply">
+`pretty-console` formats output streams and static panels; it is not a full-screen alternate-buffer TUI framework. If you need mouse hit-testing, scrollable viewports, or event loops, use `ratatui` instead.
+</Aside>
+
+## Getting started
+
+```toml
+[dependencies]
+pretty-console = "2.0.0"
+```
+
+```rust
+use pretty_console::{Line, Span, Styled};
+
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+
+    Line::new()
+        .push(" build ").dim()
+        .push("cargo build --release").bold()
+        .push(" finished in ")
+        .push("4.2s").green()
+        .println();
+}
+```
+
+Check the [getting started tutorial](/tutorials/getting-started/) to build reusable styles, panels, and terminal-aware color fallbacks.
