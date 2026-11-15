@@ -1,0 +1,69 @@
+---
+title: Styliser le terminal en Rust sans allocations sur le tas ni dépendances
+date: 2026-11-15
+cover:
+  alt: Architecture de Pretty Console
+  image: ../../blog/welcome-cover.jpg
+image: ../../blog/welcome-cover.jpg
+---
+
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
+
+La plupart des crates de mise en forme pour terminal allouent une `String` sur le tas à chaque chaînage `.red().bold()`, ou s'arrêtent aux couleurs ANSI de base en vous laissant gérer vous-même le retour à la ligne, la largeur des colonnes CJK et la dégradation selon les capacités du terminal.
+
+Nous avons créé `pretty-console` (`v2.0.0`) pour conserver un rendu sans allocation tout en fournissant les outils de mise en page et de détection de capacités dont les vraies CLI ont besoin.
+
+## L'objectif
+
+Nous voulions une crate sans aucune dépendance (`#![forbid(unsafe_code)]`) où les styles sont de petites valeurs `Copy` utilisables dans des contextes `const`, où `Display` écrit les séquences d'échappement SGR directement dans le `Formatter` cible, et où des fonctionnalités avancées comme les dégradés, les panneaux arrondis, les hyperliens OSC 8 et le retour à la ligne sensible aux codes ANSI fonctionnent immédiatement.
+
+## L'architecture
+
+Un `Style` compacte la couleur de premier plan, la couleur d'arrière-plan et un champ de bits `Effects` dans une structure `Copy` — aucun `Vec<Attribute>` sur le tas. Les attributs sont émis dans un ordre canonique avec déduplication, et l'impression met en cache la détection du terminal (`NO_COLOR`, `CLICOLOR`, `FORCE_COLOR`, `COLORTERM`, `TERM`) dès la première utilisation afin que les appels suivants n'effectuent aucun appel système d'environnement.
+
+<CardGrid stagger>
+  <Card title="Rendu sans allocation" icon="rocket">
+    `write!` et `print!` diffusent les codes ANSI SGR directement vers le formateur sans construire de tampons `String` intermédiaires.
+  </Card>
+  <Card title="Dégradation adaptative des couleurs" icon="setting">
+    `supports_color_level` inspecte `COLORTERM`, `FORCE_COLOR` et `TERM`, et `render_with` rétrograde le RGB 24 bits vers des palettes 256 ou 16 couleurs.
+  </Card>
+  <Card title="Outils texte ANSI & CJK" icon="puzzle">
+    `visible_width`, `truncate`, `pad` et `wrap` mesurent les caractères CJK pleine largeur sur 2 colonnes et ferment puis rouvrent les codes SGR lors des sauts de ligne.
+  </Card>
+  <Card title="Panneaux, dégradés et liens" icon="approve-check">
+    Prend en charge la composition multi-segments `Line`, les dégradés truecolor `gradient`, les boîtes `Panel` arrondies avec retour à la ligne souple et les hyperliens de terminal OSC 8.
+  </Card>
+</CardGrid>
+
+## Ce que cela a coûté
+
+Écrire un algorithme de retour à la ligne compatible CJK qui préserve l'état ANSI d'une ligne à l'autre sans laisser fuir de codes d'échappement sur la ligne suivante a demandé bien plus de tests de cas limites que les types de couleurs eux-mêmes. Nous avons également remplacé les tests par instantanés `insta` par des tests de contrat sur chaînes exactes afin de vérifier chaque séquence d'échappement émise octet par octet.
+
+<Aside type="caution" title="Cas où cela ne s'applique pas">
+`pretty-console` met en forme des flux de sortie et des panneaux statiques ; ce n'est pas un framework TUI plein écran en tampon alternatif. Si vous avez besoin de détection de clics souris, de vues défilantes ou de boucles d'événements, utilisez plutôt `ratatui`.
+</Aside>
+
+## Démarrer
+
+```toml
+[dependencies]
+pretty-console = "2.0.0"
+```
+
+```rust
+use pretty_console::{Line, Span, Styled};
+
+fn main() {
+    Span::new("Hello, world!").red().bold().println();
+
+    Line::new()
+        .push(" build ").dim()
+        .push("cargo build --release").bold()
+        .push(" finished in ")
+        .push("4.2s").green()
+        .println();
+}
+```
+
+Consultez le [tutoriel de démarrage](/fr/tutorials/getting-started/) pour concevoir des styles réutilisables, des panneaux et des replis de couleurs adaptés au terminal.
