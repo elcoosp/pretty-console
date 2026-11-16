@@ -14,13 +14,7 @@ assumes you can already print a styled [`Span`](/reference/span/).
 segment, then style it — the styling methods always apply to the **last
 pushed** segment:
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-let line = Line::new()
-    .push("  build ").dim()
-    .push("cargo build --release").bold()
-    .push(" finished in ").push("4.2s").green();
-line.println();`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\nlet line = Line::new()\n    .push(\"  build \").dim()\n    .push(\"cargo build --release\").bold()\n    .push(\" finished in \").push(\"4.2s\").green();\nline.println();"} />
 
 Read the chain as a cursor: `.push("...")` moves the cursor to a new segment;
 `.dim()`, `.bold()` and `.green()` restyle the segment under the cursor. The
@@ -31,10 +25,7 @@ connector `" finished in "` gets no styling calls, so it stays plain.
 Because styling applies to the last pushed segment, the order of `push` and
 style calls decides what gets colored:
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-// Red applies to "world", not to "hello ".
-let line = Line::new().push("hello ").push("world").red();`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\n// Red applies to \"world\", not to \"hello \".\nlet line = Line::new().push(\"hello \").push(\"world\").red();"} />
 
 If you style before pushing anything, the line creates an empty trailing
 segment and styles that — harmless, but pointless. Style after the `push`
@@ -44,13 +35,7 @@ whose segment you mean to color.
 
 For segments that already exist as spans, construct directly:
 
-<Code lang="rust" code={`use pretty_console::{Line, Span, Styled};
-
-let spans = vec![
-    "status: ".styled(),
-    Span::new("ok").green().bold(),
-];
-let line = Line::from_spans(spans);`} />
+<Code lang="rust" code={"use pretty_console::{Line, Span, Styled};\n\nlet spans = vec![\n    \"status: \".styled(),\n    Span::new(\"ok\").green().bold(),\n];\nlet line = Line::from_spans(spans);"} />
 
 `Line` also implements `FromIterator<Span>` and `From<Vec<Span>>`, so
 `collect()` works on span iterators.
@@ -60,10 +45,7 @@ let line = Line::from_spans(spans);`} />
 `with_style` merges a style into **every** span of the line; the merged
 style's colors win over per-span colors, attributes are unioned:
 
-<Code lang="rust" code={`use pretty_console::{Line, Style};
-
-let line = Line::new().push("a ").push("b").red();
-let dimmed = line.with_style(Style::new().dim());`} />
+<Code lang="rust" code={"use pretty_console::{Line, Style};\n\nlet line = Line::new().push(\"a \").push(\"b\").red();\nlet dimmed = line.with_style(Style::new().dim());"} />
 
 `map_span` rewrites each span through a closure when you need per-span logic.
 
@@ -73,29 +55,14 @@ In loops, collect the row by reassigning the builder — [`Line`](/reference/lin
 methods consume and return the line (`push_mut` appends in place when you do
 not need to style the new segment):
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-let mut line = Line::new();
-for (name, ok) in [("fmt", true), ("clippy", true), ("tests", false)] {
-    line = line.push(name);
-    if ok {
-        line = line.push(" ✓").green();
-    } else {
-        line = line.push(" ✗").red();
-    }
-    line = line.push("  ");
-}
-line.println();`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\nlet mut line = Line::new();\nfor (name, ok) in [(\"fmt\", true), (\"clippy\", true), (\"tests\", false)] {\n    line = line.push(name);\n    if ok {\n        line = line.push(\" \u2713\").green();\n    } else {\n        line = line.push(\" \u2717\").red();\n    }\n    line = line.push(\"  \");\n}\nline.println();"} />
 
 ## Align a whole line with format widths
 
 `Display` for `Line` pads by the line's **visible** width — ANSI escapes and
 wide CJK characters are measured the way a terminal renders them:
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-let line = Line::new().push("cache ").push("warm").green();
-println!("{:<20}|", line);`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\nlet line = Line::new().push(\"cache \").push(\"warm\").green();\nprintln!(\"{:<20}|\", line);"} />
 
 Left, right and center alignment follow the standard format spec, and the
 padding is computed from visible columns — so columns line up even when the

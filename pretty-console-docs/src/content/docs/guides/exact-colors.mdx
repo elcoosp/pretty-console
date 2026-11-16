@@ -14,11 +14,7 @@ foreground for an arbitrary background. It assumes you can print a styled
 `Color::hex` builds a 24-bit RGB color from a `0xRRGGBB` value, and
 `fg_hex` / `bg_hex` apply it inline:
 
-<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
-
-Span::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
-Span::new("Violet").fg_hex(0x7C_4D_FF).println();
-Span::new("Highlight").bg_hex(0x1E_29_3B).println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span, Styled};\n\nSpan::new(\"Violet\").fg(Color::hex(0x7C_4D_FF)).println();\nSpan::new(\"Violet\").fg_hex(0x7C_4D_FF).println();\nSpan::new(\"Highlight\").bg_hex(0x1E_29_3B).println();"} />
 
 `Color::hex(0x00FF7F)` equals `Color::RGB(0, 255, 127)` — the packed value is
 split into three bytes, highest first.
@@ -29,13 +25,7 @@ split into three bytes, highest first.
 shorthand `"#f0a"`. It returns a `ParseColorError` instead of panicking, so it
 fits configuration pipelines:
 
-<Code lang="rust" code={`use pretty_console::{Color, Span};
-
-let theme_color = "#22d3ee";
-match Color::from_hex_str(theme_color) {
-    Ok(color) => Span::new("theme accent").fg(color).println(),
-    Err(err) => eprintln!("bad color {theme_color:?}: {err}"),
-}`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span};\n\nlet theme_color = \"#22d3ee\";\nmatch Color::from_hex_str(theme_color) {\n    Ok(color) => Span::new(\"theme accent\").fg(color).println(),\n    Err(err) => eprintln!(\"bad color {theme_color:?}: {err}\"),\n}"} />
 
 `Color` also implements `FromStr`, so `"#22d3ee".parse::<Color>()` works with
 libraries that parse from strings generically. Errors come in two variants:
@@ -48,10 +38,7 @@ For terminals where palette identity matters, `Color::indexed(n)` selects an
 entry of the 256-color table, and the sixteen constants
 `Color::BLACK`…`Color::BRIGHT_WHITE` cover the base palette:
 
-<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
-
-Span::new("sky").fg(Color::indexed(117)).println();
-Span::new("base red").fg(Color::RED).println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span, Styled};\n\nSpan::new(\"sky\").fg(Color::indexed(117)).println();\nSpan::new(\"base red\").fg(Color::RED).println();"} />
 
 Palette entries render as `38;5;n` (foreground) and `48;5;n` (background);
 RGB colors render as `38;2;r;g;b` and `48;2;r;g;b`. See
@@ -62,10 +49,7 @@ RGB colors render as `38;2;r;g;b` and `48;2;r;g;b`. See
 `readable_on` returns black or white — whichever meets the WCAG 4.5:1
 contrast threshold against the color you call it on:
 
-<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
-
-let bg = Color::hex(0x1E_29_3B);
-Span::new("readable").bg(bg).fg(bg.readable_on()).println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span, Styled};\n\nlet bg = Color::hex(0x1E_29_3B);\nSpan::new(\"readable\").bg(bg).fg(bg.readable_on()).println();"} />
 
 Use it whenever a user-configurable background could be any color; the badge
 stays readable on near-black and near-white alike. `luminance()` exposes the

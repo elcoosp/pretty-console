@@ -11,7 +11,7 @@ raisonnement derrière la refonte, voir
 
 ## Augmenter la dépendance
 
-<Code lang="sh" title="Terminal" code={`cargo add pretty-console@2.0.0`} />
+<Code lang="sh" title="Terminal" code={"cargo add pretty-console@2.0.0"} />
 
 La 2.0 nécessite Rust 1.85 ou plus récent (édition 2024). Vérifiez votre
 `rust-toolchain.toml` et votre matrice de CI avant de continuer.
@@ -22,11 +22,7 @@ La 2.0 nécessite Rust 1.85 ou plus récent (édition 2024). Vérifiez votre
 donc le code existant `Console::new("...").red().println()` continue de
 compiler. Le nouveau code devrait épeler le type `Span` :
 
-<Code lang="rust" code={`use pretty_console::Span;
-
-// Avant : Console::new("hi").red();
-// Maintenant :
-let span = Span::new("hi").red();`} />
+<Code lang="rust" code={"use pretty_console::Span;\n\n// Avant : Console::new(\"hi\").red();\n// Maintenant :\nlet span = Span::new(\"hi\").red();"} />
 
 `Console::new_with_style` continue aussi de fonctionner ; les graphies
 natives Span sont `Span::new_with_style(text, style)` et `Style::paint(text)`.
@@ -39,13 +35,7 @@ barré), suivi de la couleur de premier plan, puis de la couleur
 d'arrière-plan — pas l'ordre d'insertion — et les doublons sont supprimés. Si
 vous figez des chaînes d'échappement exactes, mettez-les à jour :
 
-<Code lang="rust" code={`// Avant (1.x, ordre d'insertion, doublons possibles) :
-//   bold().bold() pouvait émettre "1;1"
-// Maintenant : un seul code, position canonique :
-assert_eq!(
-    Span::new("hi").bold().bold().to_string(),
-    "\\x1b[1mhi\\x1b[0m"
-);`} />
+<Code lang="rust" code={"// Avant (1.x, ordre d'insertion, doublons possibles) :\n//   bold().bold() pouvait \u00e9mettre \"1;1\"\n// Maintenant : un seul code, position canonique :\nassert_eq!(\n    Span::new(\"hi\").bold().bold().to_string(),\n    \"\\\\x1b[1mhi\\\\x1b[0m\"\n);"} />
 
 La dépendance de dev `insta` a disparu ; le projet lui-même vérifie
 désormais des chaînes exactes dans des tests de contrat. Si vous ne
@@ -58,12 +48,7 @@ sur `to_string()` est le remplacement pris en charge.
 de bits `Effects` — une valeur `Copy` avec `has`, `contains`, `insert`,
 `remove`, `union` et un itérateur `attributes()` :
 
-<Code lang="rust" code={`use pretty_console::{Attribute, Style, Styled};
-
-let style = Style::new().bold().underline();
-let effects = style.attributes();
-assert!(effects.has(Attribute::Bold));
-assert_eq!(effects.attributes().count(), 2);`} />
+<Code lang="rust" code={"use pretty_console::{Attribute, Style, Styled};\n\nlet style = Style::new().bold().underline();\nlet effects = style.attributes();\nassert!(effects.has(Attribute::Bold));\nassert_eq!(effects.attributes().count(), 2);"} />
 
 Le code qui testait le contenu d'une tranche devrait interroger le jeu de
 bits avec `has(Attribute::…)` ou `contains(Effects::…)` à la place.

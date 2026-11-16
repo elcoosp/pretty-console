@@ -14,12 +14,7 @@ already install the crate and print spans — see
 `Style` is `Copy` and `const`-constructible, so a style can live in a `const`
 or `static` and never allocate:
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
-
-HEADING.paint("Chapter 1").println();
-HEADING.paint("Chapter 2").println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nconst HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);\n\nHEADING.paint(\"Chapter 1\").println();\nHEADING.paint(\"Chapter 2\").println();"} />
 
 `Style::paint(text)` produces a ready-to-print [`Span`](/reference/span/).
 
@@ -28,11 +23,7 @@ HEADING.paint("Chapter 2").println();`} />
 When you already hold a styled [`Span`](/reference/span/) and want to keep its
 style but change the text, use `with_text`:
 
-<Code lang="rust" code={`use pretty_console::{Span, Styled};
-
-let error = Span::new("").red().bold();
-error.with_text("Error 1: Something went wrong").println();
-error.with_text("Error 2: Another issue").println();`} />
+<Code lang="rust" code={"use pretty_console::{Span, Styled};\n\nlet error = Span::new(\"\").red().bold();\nerror.with_text(\"Error 1: Something went wrong\").println();\nerror.with_text(\"Error 2: Another issue\").println();"} />
 
 ## Merge two styles
 
@@ -40,13 +31,7 @@ error.with_text("Error 2: Another issue").println();`} />
 sets are unioned — duplicates are impossible because attributes live in a
 bitset:
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-let heading = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
-let emphasis = Style::new().fg(Color::RED);
-
-// Red wins; bold and underline stay.
-heading.merge(emphasis).paint("Important").println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nlet heading = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);\nlet emphasis = Style::new().fg(Color::RED);\n\n// Red wins; bold and underline stay.\nheading.merge(emphasis).paint(\"Important\").println();"} />
 
 This is the rule to remember when layering a base style with an override:
 the override's foreground and background replace the base's, attributes from
@@ -57,20 +42,14 @@ both sides are kept.
 `Style` implements `From<Color>`, `From<Attribute>` and `From<Effects>`, so
 single-purpose values convert directly:
 
-<Code lang="rust" code={`use pretty_console::{Attribute, Color, Style};
-
-let colored = Style::from(Color::CYAN);
-let tilted = Style::from(Attribute::Italic);`} />
+<Code lang="rust" code={"use pretty_console::{Attribute, Color, Style};\n\nlet colored = Style::from(Color::CYAN);\nlet tilted = Style::from(Attribute::Italic);"} />
 
 ## Adjust conditionally with `when`
 
 `when` keeps builder chains flat instead of forcing `if` statements around
 them:
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-let verbose = std::env::var("VERBOSE").is_ok();
-let style = Style::new().when(verbose, |s| s.fg(Color::CYAN).dim());`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nlet verbose = std::env::var(\"VERBOSE\").is_ok();\nlet style = Style::new().when(verbose, |s| s.fg(Color::CYAN).dim());"} />
 
 The closure runs only when the condition holds; otherwise the style passes
 through untouched. [`Span`](/reference/span/) and

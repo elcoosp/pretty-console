@@ -15,11 +15,7 @@ arrière-plan arbitraire. Il suppose que vous savez imprimer un
 `Color::hex` construit une couleur RVB 24 bits depuis une valeur `0xRRGGBB`,
 et `fg_hex` / `bg_hex` l'appliquent en ligne :
 
-<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
-
-Span::new("Violet").fg(Color::hex(0x7C_4D_FF)).println();
-Span::new("Violet").fg_hex(0x7C_4D_FF).println();
-Span::new("Highlight").bg_hex(0x1E_29_3B).println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span, Styled};\n\nSpan::new(\"Violet\").fg(Color::hex(0x7C_4D_FF)).println();\nSpan::new(\"Violet\").fg_hex(0x7C_4D_FF).println();\nSpan::new(\"Highlight\").bg_hex(0x1E_29_3B).println();"} />
 
 `Color::hex(0x00FF7F)` équivaut à `Color::RGB(0, 255, 127)` — la valeur
 compacte est découpée en trois octets, du plus fort au plus faible.
@@ -30,13 +26,7 @@ compacte est découpée en trois octets, du plus fort au plus faible.
 chiffres `"#f0a"`. Elle renvoie une `ParseColorError` au lieu de paniquer,
 donc elle s'intègre aux pipelines de configuration :
 
-<Code lang="rust" code={`use pretty_console::{Color, Span};
-
-let theme_color = "#22d3ee";
-match Color::from_hex_str(theme_color) {
-    Ok(color) => Span::new("theme accent").fg(color).println(),
-    Err(err) => eprintln!("bad color {theme_color:?}: {err}"),
-}`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span};\n\nlet theme_color = \"#22d3ee\";\nmatch Color::from_hex_str(theme_color) {\n    Ok(color) => Span::new(\"theme accent\").fg(color).println(),\n    Err(err) => eprintln!(\"bad color {theme_color:?}: {err}\"),\n}"} />
 
 `Color` implémente aussi `FromStr`, donc `"#22d3ee".parse::<Color>()`
 fonctionne avec les bibliothèques qui analysent des chaînes génériquement.
@@ -50,10 +40,7 @@ Pour les terminaux où l'identité de palette compte, `Color::indexed(n)`
 sélectionne une entrée de la table 256 couleurs, et les seize constantes
 `Color::BLACK`…`Color::BRIGHT_WHITE` couvrent la palette de base :
 
-<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
-
-Span::new("sky").fg(Color::indexed(117)).println();
-Span::new("base red").fg(Color::RED).println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span, Styled};\n\nSpan::new(\"sky\").fg(Color::indexed(117)).println();\nSpan::new(\"base red\").fg(Color::RED).println();"} />
 
 Les entrées de palette se rendent comme `38;5;n` (premier plan) et `48;5;n`
 (arrière-plan) ; les couleurs RVB se rendent comme `38;2;r;g;b` et
@@ -64,10 +51,7 @@ Les entrées de palette se rendent comme `38;5;n` (premier plan) et `48;5;n`
 `readable_on` renvoie noir ou blanc — celui qui satisfait le seuil de
 contraste WCAG 4.5:1 contre la couleur sur laquelle vous l'appelez :
 
-<Code lang="rust" code={`use pretty_console::{Color, Span, Styled};
-
-let bg = Color::hex(0x1E_29_3B);
-Span::new("readable").bg(bg).fg(bg.readable_on()).println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Span, Styled};\n\nlet bg = Color::hex(0x1E_29_3B);\nSpan::new(\"readable\").bg(bg).fg(bg.readable_on()).println();"} />
 
 Utilisez-la dès qu'un arrière-plan configurable par l'utilisateur pourrait
 être de n'importe quelle couleur ; le badge reste lisible sur quasi-noir et

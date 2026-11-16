@@ -25,9 +25,7 @@ compiles to register moves. A v1-style `Vec<Attribute>` was the audit's
 first finding: every builder call cloned a heap list. In v2 the whole style
 can live in a `const`:
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nconst HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);"} />
 
 ## The Effects bitset
 

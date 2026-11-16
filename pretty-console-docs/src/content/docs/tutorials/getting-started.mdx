@@ -30,23 +30,21 @@ A tiny program that prints:
 1. **Create a project.** In your terminal, create a new Rust project and move
    into it:
 
-   <Code lang="sh" title="Terminal" code={`cargo new pretty-demo
-cd pretty-demo`} />
+   <Code lang="sh" title="Terminal" code={"cargo new pretty-demo\ncd pretty-demo"} />
 
 2. **Add the crate.**
 
    <Tabs>
      <TabItem label="cargo add">
 
-   <Code lang="sh" title="Terminal" code={`cargo add pretty-console`} />
+   <Code lang="sh" title="Terminal" code={"cargo add pretty-console"} />
 
      </TabItem>
      <TabItem label="Cargo.toml">
 
    Add the dependency to the `[dependencies]` section of `Cargo.toml`:
 
-   <Code lang="toml" title="Cargo.toml" code={`[dependencies]
-pretty-console = "2.0.0"`} />
+   <Code lang="toml" title="Cargo.toml" code={"[dependencies]\npretty-console = \"2.0.0\""} />
 
      </TabItem>
    </Tabs>
@@ -56,16 +54,12 @@ pretty-console = "2.0.0"`} />
 
 3. **Style a single span.** Open `src/main.rs` and replace its contents with:
 
-   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
-
-fn main() {
-    Span::new("Hello, world!").red().bold().println();
-}`} />
+   <Code lang="rust" title="src/main.rs" code={"use pretty_console::{Span, Styled};\n\nfn main() {\n    Span::new(\"Hello, world!\").red().bold().println();\n}"} />
 
    Every builder call — `.red()`, `.bold()` — returns the span again, so calls
    chain left to right. `.println()` writes the result to stdout. Run it:
 
-   <Code lang="sh" title="Terminal" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={"cargo run"} />
 
    You should now see **Hello, world!** printed in bold red.
 
@@ -79,16 +73,11 @@ fn main() {
    directly, without constructing a `Span` by hand. Add a second line to
    `main`:
 
-   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
-
-fn main() {
-    Span::new("Hello, world!").red().bold().println();
-    println!("{}", "Ready to go".cyan());
-}`} />
+   <Code lang="rust" title="src/main.rs" code={"use pretty_console::{Span, Styled};\n\nfn main() {\n    Span::new(\"Hello, world!\").red().bold().println();\n    println!(\"{}\", \"Ready to go\".cyan());\n}"} />
 
    Run it again:
 
-   <Code lang="sh" title="Terminal" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={"cargo run"} />
 
    You should now see both lines: the bold red greeting, then **Ready to go**
    in cyan.
@@ -97,24 +86,13 @@ fn main() {
    carries its own style. `Line` joins spans into one row, and its styling
    methods apply to the segment you pushed last:
 
-   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Line, Span, Styled};
-
-fn main() {
-    Span::new("Hello, world!").red().bold().println();
-    println!("{}", "Ready to go".cyan());
-
-    Line::new()
-        .push("  build ").dim()
-        .push("cargo build --release").bold()
-        .push(" finished in ").push("4.2s").green()
-        .println();
-}`} />
+   <Code lang="rust" title="src/main.rs" code={"use pretty_console::{Line, Span, Styled};\n\nfn main() {\n    Span::new(\"Hello, world!\").red().bold().println();\n    println!(\"{}\", \"Ready to go\".cyan());\n\n    Line::new()\n        .push(\"  build \").dim()\n        .push(\"cargo build --release\").bold()\n        .push(\" finished in \").push(\"4.2s\").green()\n        .println();\n}"} />
 
    The third line reads left to right: a dim label, a bold command, a plain
    connector, and a green duration — because `.green()` styles the last pushed
    segment, `"4.2s"`. Run the final version:
 
-   <Code lang="sh" title="Terminal" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={"cargo run"} />
 
    You should now see three rows:
 

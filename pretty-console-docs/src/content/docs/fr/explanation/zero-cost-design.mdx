@@ -27,9 +27,7 @@ la v1 était la première conclusion de l'audit : chaque appel de builder
 clonait une liste sur le tas. Dans la v2, tout le style peut vivre dans une
 `const` :
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nconst HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);"} />
 
 ## Le jeu de bits Effects
 

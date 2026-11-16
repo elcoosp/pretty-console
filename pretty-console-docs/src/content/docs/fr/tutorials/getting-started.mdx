@@ -33,23 +33,21 @@ Un petit programme qui imprime :
 1. **Créer un projet.** Dans votre terminal, créez un nouveau projet Rust et
    déplacez-vous dedans :
 
-   <Code lang="sh" title="Terminal" code={`cargo new pretty-demo
-cd pretty-demo`} />
+   <Code lang="sh" title="Terminal" code={"cargo new pretty-demo\ncd pretty-demo"} />
 
 2. **Ajouter la crate.**
 
    <Tabs>
      <TabItem label="cargo add">
 
-   <Code lang="sh" title="Terminal" code={`cargo add pretty-console`} />
+   <Code lang="sh" title="Terminal" code={"cargo add pretty-console"} />
 
      </TabItem>
      <TabItem label="Cargo.toml">
 
    Ajoutez la dépendance à la section `[dependencies]` de `Cargo.toml` :
 
-   <Code lang="toml" title="Cargo.toml" code={`[dependencies]
-pretty-console = "2.0.0"`} />
+   <Code lang="toml" title="Cargo.toml" code={"[dependencies]\npretty-console = \"2.0.0\""} />
 
      </TabItem>
    </Tabs>
@@ -60,17 +58,13 @@ pretty-console = "2.0.0"`} />
 3. **Styler un seul span.** Ouvrez `src/main.rs` et remplacez son contenu
    par :
 
-   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
-
-fn main() {
-    Span::new("Hello, world!").red().bold().println();
-}`} />
+   <Code lang="rust" title="src/main.rs" code={"use pretty_console::{Span, Styled};\n\nfn main() {\n    Span::new(\"Hello, world!\").red().bold().println();\n}"} />
 
    Chaque appel de builder — `.red()`, `.bold()` — renvoie de nouveau le
    span, donc les appels se chaînent de gauche à droite. `.println()` écrit
    le résultat sur stdout. Exécutez :
 
-   <Code lang="sh" title="Terminal" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={"cargo run"} />
 
    Vous devriez maintenant voir **Hello, world!** imprimé en rouge gras.
 
@@ -84,16 +78,11 @@ fn main() {
    littéraux de chaîne, sans construire un `Span` à la main. Ajoutez une
    seconde ligne à `main` :
 
-   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
-
-fn main() {
-    Span::new("Hello, world!").red().bold().println();
-    println!("{}", "Ready to go".cyan());
-}`} />
+   <Code lang="rust" title="src/main.rs" code={"use pretty_console::{Span, Styled};\n\nfn main() {\n    Span::new(\"Hello, world!\").red().bold().println();\n    println!(\"{}\", \"Ready to go\".cyan());\n}"} />
 
    Exécutez à nouveau :
 
-   <Code lang="sh" title="Terminal" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={"cargo run"} />
 
    Vous devriez maintenant voir les deux lignes : le salut rouge gras, puis
    **Ready to go** en cyan.
@@ -103,25 +92,14 @@ fn main() {
    seule ligne, et ses méthodes de style s'appliquent au segment que vous
    avez poussé en dernier :
 
-   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Line, Span, Styled};
-
-fn main() {
-    Span::new("Hello, world!").red().bold().println();
-    println!("{}", "Ready to go".cyan());
-
-    Line::new()
-        .push("  build ").dim()
-        .push("cargo build --release").bold()
-        .push(" finished in ").push("4.2s").green()
-        .println();
-}`} />
+   <Code lang="rust" title="src/main.rs" code={"use pretty_console::{Line, Span, Styled};\n\nfn main() {\n    Span::new(\"Hello, world!\").red().bold().println();\n    println!(\"{}\", \"Ready to go\".cyan());\n\n    Line::new()\n        .push(\"  build \").dim()\n        .push(\"cargo build --release\").bold()\n        .push(\" finished in \").push(\"4.2s\").green()\n        .println();\n}"} />
 
    La troisième ligne se lit de gauche à droite : une étiquette atténuée, une
    commande grasse, un connecteur brut, et une durée verte — parce que
    `.green()` style le dernier segment poussé, `"4.2s"`. Exécutez la version
    finale :
 
-   <Code lang="sh" title="Terminal" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={"cargo run"} />
 
    Vous devriez maintenant voir trois lignes :
 

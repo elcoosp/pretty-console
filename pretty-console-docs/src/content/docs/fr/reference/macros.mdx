@@ -14,30 +14,21 @@ Source : `src/macros.rs`.
 [`Span`](/reference/span/) à partir d'arguments `format!` et d'une liste de
 noms de méthodes de style :
 
-<Code lang="rust" title="src/macros.rs" code={`use pretty_console::paint;
-
-let msg = paint!(green bold, "{} tests passed", 12);
-msg.println();`} />
+<Code lang="rust" title="src/macros.rs" code={"use pretty_console::paint;\n\nlet msg = paint!(green bold, \"{} tests passed\", 12);\nmsg.println();"} />
 
 ## style!
 
 `style!(method+) -> Style` — construit un [`Style`](/reference/style/) de la
 même façon :
 
-<Code lang="rust" title="src/macros.rs" code={`use pretty_console::style;
-
-let danger = style!(bold red on_white);
-danger.paint("boom").println();`} />
+<Code lang="rust" title="src/macros.rs" code={"use pretty_console::style;\n\nlet danger = style!(bold red on_white);\ndanger.paint(\"boom\").println();"} />
 
 ## line!
 
 `line!(span, …) -> Line` — construit une [`Line`](/reference/line/) en
 poussant chaque expression (spans ou chaînes brutes) :
 
-<Code lang="rust" code={`use pretty_console::line;
-
-let row = line!("cache ", "warm", " · 42 entries");
-row.println();`} />
+<Code lang="rust" code={"use pretty_console::line;\n\nlet row = line!(\"cache \", \"warm\", \" \u00b7 42 entries\");\nrow.println();"} />
 
 ## Contraintes
 

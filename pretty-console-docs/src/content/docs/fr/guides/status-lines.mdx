@@ -15,13 +15,7 @@ imprimer un [`Span`](/reference/span/) stylé.
 ligne. Poussez un segment, puis stylez-le — les méthodes de style
 s'appliquent toujours au segment **poussé en dernier** :
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-let line = Line::new()
-    .push("  build ").dim()
-    .push("cargo build --release").bold()
-    .push(" finished in ").push("4.2s").green();
-line.println();`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\nlet line = Line::new()\n    .push(\"  build \").dim()\n    .push(\"cargo build --release\").bold()\n    .push(\" finished in \").push(\"4.2s\").green();\nline.println();"} />
 
 Lisez la chaîne comme un curseur : `.push("...")` déplace le curseur sur un
 nouveau segment ; `.dim()`, `.bold()` et `.green()` restylent le segment sous
@@ -33,10 +27,7 @@ donc il reste brut.
 Parce que le style s'applique au dernier segment poussé, l'ordre des appels
 `push` et de style décide de ce qui est coloré :
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-// Le rouge s'applique à "world", pas à "hello ".
-let line = Line::new().push("hello ").push("world").red();`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\n// Le rouge s'applique \u00e0 \"world\", pas \u00e0 \"hello \".\nlet line = Line::new().push(\"hello \").push(\"world\").red();"} />
 
 Si vous stylez avant d'avoir poussé quoi que ce soit, la ligne crée un
 segment de fin vide et le style — inoffensif, mais inutile. Stylez après le
@@ -47,13 +38,7 @@ segment de fin vide et le style — inoffensif, mais inutile. Stylez après le
 Pour des segments qui existent déjà sous forme de spans, construisez
 directement :
 
-<Code lang="rust" code={`use pretty_console::{Line, Span, Styled};
-
-let spans = vec![
-    "status: ".styled(),
-    Span::new("ok").green().bold(),
-];
-let line = Line::from_spans(spans);`} />
+<Code lang="rust" code={"use pretty_console::{Line, Span, Styled};\n\nlet spans = vec![\n    \"status: \".styled(),\n    Span::new(\"ok\").green().bold(),\n];\nlet line = Line::from_spans(spans);"} />
 
 `Line` implémente aussi `FromIterator<Span>` et `From<Vec<Span>>`, donc
 `collect()` fonctionne sur des itérateurs de spans.
@@ -64,10 +49,7 @@ let line = Line::from_spans(spans);`} />
 couleurs du style fusionné l'emportent sur les couleurs par span, les
 attributs sont réunis :
 
-<Code lang="rust" code={`use pretty_console::{Line, Style};
-
-let line = Line::new().push("a ").push("b").red();
-let dimmed = line.with_style(Style::new().dim());`} />
+<Code lang="rust" code={"use pretty_console::{Line, Style};\n\nlet line = Line::new().push(\"a \").push(\"b\").red();\nlet dimmed = line.with_style(Style::new().dim());"} />
 
 `map_span` réécrit chaque span à travers une fermeture quand vous avez besoin
 d'une logique par span.
@@ -78,19 +60,7 @@ En boucle, collectez la ligne en réassignant le builder —
 [`Line`](/reference/line/) consomme et renvoie la ligne (`push_mut` ajoute en
 place quand vous n'avez pas besoin de styler le nouveau segment) :
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-let mut line = Line::new();
-for (name, ok) in [("fmt", true), ("clippy", true), ("tests", false)] {
-    line = line.push(name);
-    if ok {
-        line = line.push(" ✓").green();
-    } else {
-        line = line.push(" ✗").red();
-    }
-    line = line.push("  ");
-}
-line.println();`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\nlet mut line = Line::new();\nfor (name, ok) in [(\"fmt\", true), (\"clippy\", true), (\"tests\", false)] {\n    line = line.push(name);\n    if ok {\n        line = line.push(\" \u2713\").green();\n    } else {\n        line = line.push(\" \u2717\").red();\n    }\n    line = line.push(\"  \");\n}\nline.println();"} />
 
 ## Aligner une ligne entière avec les largeurs de format
 
@@ -98,10 +68,7 @@ line.println();`} />
 échappements ANSI et les caractères larges CJK sont mesurés comme un terminal
 les rend :
 
-<Code lang="rust" code={`use pretty_console::Line;
-
-let line = Line::new().push("cache ").push("warm").green();
-println!("{:<20}|", line);`} />
+<Code lang="rust" code={"use pretty_console::Line;\n\nlet line = Line::new().push(\"cache \").push(\"warm\").green();\nprintln!(\"{:<20}|\", line);"} />
 
 L'alignement à gauche, à droite et centré suit la spécification de format
 standard, et le remplissage est calculé à partir des colonnes visibles — donc

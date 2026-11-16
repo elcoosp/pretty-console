@@ -119,9 +119,7 @@ valeurs de type chaîne en place. `styled()` enveloppe la valeur dans un
 `Span` brut ; toute autre méthode délègue au builder `Span` correspondant et
 renvoie un `Span` :
 
-<Code lang="rust" code={`use pretty_console::Styled;
-
-let span = "hello".red().bold();`} />
+<Code lang="rust" code={"use pretty_console::Styled;\n\nlet span = \"hello\".red().bold();"} />
 
 Le trait porte `styled`, les seize couleurs de premier plan, les seize
 arrière-plans `on_*`, et les huit méthodes d'attributs — les mêmes noms que

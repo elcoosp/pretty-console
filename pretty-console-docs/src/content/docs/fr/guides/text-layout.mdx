@@ -17,11 +17,7 @@ complète des échappements et les tables de plages, voir
 comptent comme zéro, les caractères larges CJK comptent comme deux, les
 marques combinantes comptent comme zéro :
 
-<Code lang="rust" code={`use pretty_console::{visible_width, Styled};
-
-assert_eq!(visible_width("héllo"), 5);
-assert_eq!(visible_width("日本語"), 6);          // trois caractères larges
-assert_eq!(visible_width(&"hi".red().to_string()), 2); // les échappements sont de largeur nulle`} />
+<Code lang="rust" code={"use pretty_console::{visible_width, Styled};\n\nassert_eq!(visible_width(\"h\u00e9llo\"), 5);\nassert_eq!(visible_width(\"\u65e5\u672c\u8a9e\"), 6);          // trois caract\u00e8res larges\nassert_eq!(visible_width(&\"hi\".red().to_string()), 2); // les \u00e9chappements sont de largeur nulle"} />
 
 La brique à un seul caractère est `char_width`.
 
@@ -30,10 +26,7 @@ La brique à un seul caractère est `char_width`.
 `truncate` coupe à `max_width` colonnes visibles et ajoute la queue quand une
 troncature a lieu :
 
-<Code lang="rust" code={`use pretty_console::truncate;
-
-assert_eq!(truncate("hello world", 8, "…"), "hello w…");
-assert_eq!(truncate("short", 8, "…"), "short");`} />
+<Code lang="rust" code={"use pretty_console::truncate;\n\nassert_eq!(truncate(\"hello world\", 8, \"\u2026\"), \"hello w\u2026\");\nassert_eq!(truncate(\"short\", 8, \"\u2026\"), \"short\");"} />
 
 Trois détails comptent dans de vrais pipelines :
 
@@ -50,11 +43,7 @@ Trois détails comptent dans de vrais pipelines :
 `pad` élargit une chaîne à exactement `width` colonnes visibles avec un
 caractère de remplissage, en choisissant un côté via `Align` :
 
-<Code lang="rust" code={`use pretty_console::{pad, Align};
-
-assert_eq!(pad("hi", 4, Align::Left, '.'), "hi..");
-assert_eq!(pad("hi", 4, Align::Right, '.'), "..hi");
-assert_eq!(pad("hi", 5, Align::Center, '.'), ".hi..");`} />
+<Code lang="rust" code={"use pretty_console::{pad, Align};\n\nassert_eq!(pad(\"hi\", 4, Align::Left, '.'), \"hi..\");\nassert_eq!(pad(\"hi\", 4, Align::Right, '.'), \"..hi\");\nassert_eq!(pad(\"hi\", 5, Align::Center, '.'), \".hi..\");"} />
 
 `pad` ne coupe jamais : une entrée plus large que `width` revient inchangée.
 Combinez avec `truncate` quand vous avez besoin des deux directions.
@@ -65,17 +54,7 @@ Combinez avec `truncate` quand vous avez besoin des deux directions.
 calcule le remplissage à partir de la largeur visible, donc les spécificateurs
 de format standard alignent les valeurs stylées sans travail supplémentaire :
 
-<Code lang="rust" code={`use pretty_console::Styled;
-
-let rows = [("fmt", "ok"), ("clippy", "ok"), ("tests", "failed")];
-for (name, status) in rows {
-    let status_span = if status == "ok" {
-        status.green()
-    } else {
-        status.red().bold()
-    };
-    println!("{:<10}| {}", name, status_span);
-}`} />
+<Code lang="rust" code={"use pretty_console::Styled;\n\nlet rows = [(\"fmt\", \"ok\"), (\"clippy\", \"ok\"), (\"tests\", \"failed\")];\nfor (name, status) in rows {\n    let status_span = if status == \"ok\" {\n        status.green()\n    } else {\n        status.red().bold()\n    };\n    println!(\"{:<10}| {}\", name, status_span);\n}"} />
 
 Le `{:<10}` remplit le nom brut ; le statut stylé n'a pas besoin de
 compensation de remplissage, parce que `{}` sur un span ne compte jamais ses

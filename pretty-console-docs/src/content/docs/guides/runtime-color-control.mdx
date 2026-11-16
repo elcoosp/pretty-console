@@ -15,10 +15,7 @@ The print family — `print`, `println`, `eprint`, `eprintln` and `write_to` —
 honors a global [`ColorChoice`](/reference/color-control/). The default,
 `Auto`, checks the environment and stdout:
 
-<Code lang="rust" code={`use pretty_console::{Span, Styled};
-
-// Styled when colors are enabled, plain text otherwise.
-Span::new("hello").red().println();`} />
+<Code lang="rust" code={"use pretty_console::{Span, Styled};\n\n// Styled when colors are enabled, plain text otherwise.\nSpan::new(\"hello\").red().println();"} />
 
 The detection runs once, is cached, and never touches the environment again on
 the hot printing path. String rendering (`to_string`, `render`, `Display`) is
@@ -45,24 +42,7 @@ disabling ones. The exact precedence lives in
 Set the global choice after parsing your CLI arguments. `Auto` restores
 environment-driven behavior:
 
-<Code lang="rust" title="src/main.rs" code={`use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
-
-enum ColorFlag {
-    Always,
-    Never,
-    Auto,
-}
-
-fn main() {
-    let flag = parse_color_flag(); // your --color handling
-    set_color_choice(match flag {
-        ColorFlag::Always => ColorChoice::Always,
-        ColorFlag::Never => ColorChoice::Never,
-        ColorFlag::Auto => ColorChoice::Auto,
-    });
-
-    Span::new("styled or plain, decided above").cyan().println();
-}`} />
+<Code lang="rust" title="src/main.rs" code={"use pretty_console::{set_color_choice, ColorChoice, Span, Styled};\n\nenum ColorFlag {\n    Always,\n    Never,\n    Auto,\n}\n\nfn main() {\n    let flag = parse_color_flag(); // your --color handling\n    set_color_choice(match flag {\n        ColorFlag::Always => ColorChoice::Always,\n        ColorFlag::Never => ColorChoice::Never,\n        ColorFlag::Auto => ColorChoice::Auto,\n    });\n\n    Span::new(\"styled or plain, decided above\").cyan().println();\n}"} />
 
 `set_color_choice` invalidates the cached `Auto` decision, so the next print
 re-evaluates if you switch back to `Auto`.
@@ -72,9 +52,7 @@ re-evaluates if you switch back to `Auto`.
 Diagnostics belong on stderr; the `e*` variants behave like their stdout
 siblings and honor the same choice:
 
-<Code lang="rust" code={`use pretty_console::{Span, Styled};
-
-Span::error("Disk full").eprintln();`} />
+<Code lang="rust" code={"use pretty_console::{Span, Styled};\n\nSpan::error(\"Disk full\").eprintln();"} />
 
 ## Handle broken pipes with try_*
 
@@ -82,21 +60,11 @@ The plain print methods panic when the underlying stream fails — for example
 when stdout is a closed pipe (`myapp | head -n 1`). The `try_*` variants
 return `io::Result<()>` instead:
 
-<Code lang="rust" code={`use pretty_console::{Span, Styled};
-
-if Span::new("streaming…").dim().try_println().is_err() {
-    // downstream closed the pipe — exit quietly
-}`} />
+<Code lang="rust" code={"use pretty_console::{Span, Styled};\n\nif Span::new(\"streaming\u2026\").dim().try_println().is_err() {\n    // downstream closed the pipe \u2014 exit quietly\n}"} />
 
 `write_to` does the same for any writer you hold:
 
-<Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
-
-fn main() -> std::io::Result<()> {
-    let mut buffer: Vec<u8> = Vec::new();
-    Span::new("logged").green().write_to(&mut buffer)?;
-    Ok(())
-}`} />
+<Code lang="rust" title="src/main.rs" code={"use pretty_console::{Span, Styled};\n\nfn main() -> std::io::Result<()> {\n    let mut buffer: Vec<u8> = Vec::new();\n    Span::new(\"logged\").green().write_to(&mut buffer)?;\n    Ok(())\n}"} />
 
 ## Next steps
 

@@ -14,12 +14,7 @@ suppose que vous avez déjà installé la crate et imprimé des spans — voir
 `Style` est `Copy` et constructible en `const`, donc un style peut vivre dans
 une `const` ou un `static` et ne jamais allouer :
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-const HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
-
-HEADING.paint("Chapter 1").println();
-HEADING.paint("Chapter 2").println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nconst HEADING: Style = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);\n\nHEADING.paint(\"Chapter 1\").println();\nHEADING.paint(\"Chapter 2\").println();"} />
 
 `Style::paint(text)` produit un [`Span`](/reference/span/) prêt à imprimer.
 
@@ -28,11 +23,7 @@ HEADING.paint("Chapter 2").println();`} />
 Quand vous tenez déjà un [`Span`](/reference/span/) stylé et voulez garder
 son style en changeant le texte, utilisez `with_text` :
 
-<Code lang="rust" code={`use pretty_console::{Span, Styled};
-
-let error = Span::new("").red().bold();
-error.with_text("Error 1: Something went wrong").println();
-error.with_text("Error 2: Another issue").println();`} />
+<Code lang="rust" code={"use pretty_console::{Span, Styled};\n\nlet error = Span::new(\"\").red().bold();\nerror.with_text(\"Error 1: Something went wrong\").println();\nerror.with_text(\"Error 2: Another issue\").println();"} />
 
 ## Fusionner deux styles
 
@@ -40,13 +31,7 @@ error.with_text("Error 2: Another issue").println();`} />
 et les jeux d'attributs sont réunis — les doublons sont impossibles parce que
 les attributs vivent dans un jeu de bits :
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-let heading = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);
-let emphasis = Style::new().fg(Color::RED);
-
-// Le rouge l'emporte ; gras et souligné restent.
-heading.merge(emphasis).paint("Important").println();`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nlet heading = Style::new().bold().underline().fg(Color::BRIGHT_BLUE);\nlet emphasis = Style::new().fg(Color::RED);\n\n// Le rouge l'emporte ; gras et soulign\u00e9 restent.\nheading.merge(emphasis).paint(\"Important\").println();"} />
 
 C'est la règle à retenir quand vous superposez un style de base et une
 surcharge : le premier plan et l'arrière-plan de la surcharge remplacent ceux
@@ -57,19 +42,13 @@ de la base, les attributs des deux côtés sont conservés.
 `Style` implémente `From<Color>`, `From<Attribute>` et `From<Effects>`, donc
 les valeurs à usage unique se convertissent directement :
 
-<Code lang="rust" code={`use pretty_console::{Attribute, Color, Style};
-
-let colored = Style::from(Color::CYAN);
-let tilted = Style::from(Attribute::Italic);`} />
+<Code lang="rust" code={"use pretty_console::{Attribute, Color, Style};\n\nlet colored = Style::from(Color::CYAN);\nlet tilted = Style::from(Attribute::Italic);"} />
 
 ## Ajuster conditionnellement avec `when`
 
 `when` garde les chaînes de builder plates au lieu de forcer des `if` autour :
 
-<Code lang="rust" code={`use pretty_console::{Color, Style};
-
-let verbose = std::env::var("VERBOSE").is_ok();
-let style = Style::new().when(verbose, |s| s.fg(Color::CYAN).dim());`} />
+<Code lang="rust" code={"use pretty_console::{Color, Style};\n\nlet verbose = std::env::var(\"VERBOSE\").is_ok();\nlet style = Style::new().when(verbose, |s| s.fg(Color::CYAN).dim());"} />
 
 La fermeture ne s'exécute que lorsque la condition est vraie ; sinon le style
 passe inchangé. [`Span`](/reference/span/) et [`Line`](/reference/line/) ont
