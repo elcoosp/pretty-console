@@ -79,7 +79,7 @@ fn main() {
    directly, without constructing a `Span` by hand. Add a second line to
    `main`:
 
-   <Code lang="rust" code={`use pretty_console::{Span, Styled};
+   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
 
 fn main() {
     Span::new("Hello, world!").red().bold().println();
@@ -97,7 +97,7 @@ fn main() {
    carries its own style. `Line` joins spans into one row, and its styling
    methods apply to the segment you pushed last:
 
-   <Code lang="rust" code={`use pretty_console::{Line, Span, Styled};
+   <Code lang="rust" title="src/main.rs" code={`use pretty_console::{Line, Span, Styled};
 
 fn main() {
     Span::new("Hello, world!").red().bold().println();

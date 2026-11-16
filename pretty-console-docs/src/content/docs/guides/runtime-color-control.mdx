@@ -45,7 +45,7 @@ disabling ones. The exact precedence lives in
 Set the global choice after parsing your CLI arguments. `Auto` restores
 environment-driven behavior:
 
-<Code lang="rust" code={`use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
+<Code lang="rust" title="src/main.rs" code={`use pretty_console::{set_color_choice, ColorChoice, Span, Styled};
 
 enum ColorFlag {
     Always,
@@ -90,7 +90,7 @@ if Span::new("streaming…").dim().try_println().is_err() {
 
 `write_to` does the same for any writer you hold:
 
-<Code lang="rust" code={`use pretty_console::{Span, Styled};
+<Code lang="rust" title="src/main.rs" code={`use pretty_console::{Span, Styled};
 
 fn main() -> std::io::Result<()> {
     let mut buffer: Vec<u8> = Vec::new();

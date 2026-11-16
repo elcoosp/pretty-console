@@ -14,7 +14,7 @@ Source : `src/macros.rs`.
 [`Span`](/reference/span/) à partir d'arguments `format!` et d'une liste de
 noms de méthodes de style :
 
-<Code lang="rust" code={`use pretty_console::paint;
+<Code lang="rust" title="src/macros.rs" code={`use pretty_console::paint;
 
 let msg = paint!(green bold, "{} tests passed", 12);
 msg.println();`} />
@@ -24,7 +24,7 @@ msg.println();`} />
 `style!(method+) -> Style` — construit un [`Style`](/reference/style/) de la
 même façon :
 
-<Code lang="rust" code={`use pretty_console::style;
+<Code lang="rust" title="src/macros.rs" code={`use pretty_console::style;
 
 let danger = style!(bold red on_white);
 danger.paint("boom").println();`} />

@@ -13,7 +13,7 @@ exported at the crate root (`#[macro_export]`). Source: `src/macros.rs`.
 [`Span`](/reference/span/) from `format!` arguments and a list of style
 method names:
 
-<Code lang="rust" code={`use pretty_console::paint;
+<Code lang="rust" title="src/macros.rs" code={`use pretty_console::paint;
 
 let msg = paint!(green bold, "{} tests passed", 12);
 msg.println();`} />
@@ -23,7 +23,7 @@ msg.println();`} />
 `style!(method+) -> Style` — builds a [`Style`](/reference/style/) the same
 way:
 
-<Code lang="rust" code={`use pretty_console::style;
+<Code lang="rust" title="src/macros.rs" code={`use pretty_console::style;
 
 let danger = style!(bold red on_white);
 danger.paint("boom").println();`} />
