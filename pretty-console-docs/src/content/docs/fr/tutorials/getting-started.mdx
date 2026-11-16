@@ -33,7 +33,7 @@ Un petit programme qui imprime :
 1. **Créer un projet.** Dans votre terminal, créez un nouveau projet Rust et
    déplacez-vous dedans :
 
-   <Code lang="sh" code={`cargo new pretty-demo
+   <Code lang="sh" title="Terminal" code={`cargo new pretty-demo
 cd pretty-demo`} />
 
 2. **Ajouter la crate.**
@@ -41,14 +41,14 @@ cd pretty-demo`} />
    <Tabs>
      <TabItem label="cargo add">
 
-   <Code lang="sh" code={`cargo add pretty-console`} />
+   <Code lang="sh" title="Terminal" code={`cargo add pretty-console`} />
 
      </TabItem>
      <TabItem label="Cargo.toml">
 
    Ajoutez la dépendance à la section `[dependencies]` de `Cargo.toml` :
 
-   <Code lang="toml" code={`[dependencies]
+   <Code lang="toml" title="Cargo.toml" code={`[dependencies]
 pretty-console = "2.0.0"`} />
 
      </TabItem>
@@ -70,7 +70,7 @@ fn main() {
    span, donc les appels se chaînent de gauche à droite. `.println()` écrit
    le résultat sur stdout. Exécutez :
 
-   <Code lang="sh" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={`cargo run`} />
 
    Vous devriez maintenant voir **Hello, world!** imprimé en rouge gras.
 
@@ -93,7 +93,7 @@ fn main() {
 
    Exécutez à nouveau :
 
-   <Code lang="sh" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={`cargo run`} />
 
    Vous devriez maintenant voir les deux lignes : le salut rouge gras, puis
    **Ready to go** en cyan.
@@ -121,7 +121,7 @@ fn main() {
    `.green()` style le dernier segment poussé, `"4.2s"`. Exécutez la version
    finale :
 
-   <Code lang="sh" code={`cargo run`} />
+   <Code lang="sh" title="Terminal" code={`cargo run`} />
 
    Vous devriez maintenant voir trois lignes :
 
