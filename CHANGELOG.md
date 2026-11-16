@@ -89,7 +89,7 @@ notes for the (few) intentional breaking changes.
 ## [1.0.0] - 2025-11-02
 ### Documentation
 - Fix version in cargo
-## [1] - 2025-11-02
+### [1] - 2025-11-02
 ### Continuous Integration
 - Add ci & publish wrkflw
 

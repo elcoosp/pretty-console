@@ -6,15 +6,10 @@ export default await defineDocsConfig({
   domain: 'pretty-console.vercel.app',
   title: "pretty-console",
   description: "The fluent, zero-cost terminal styling toolkit for Rust: spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools.",
-  sidebar: [],
   extraStarlight: {
-                        expressiveCode: {
-                        	themes: ['github-light', 'github-dark']
-                        },
                         title: 'pretty-console',
                         description:
                                 'The fluent, zero-cost terminal styling toolkit for Rust: spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools.',
-                        favicon: '/favicon.png',
                         social: [
                                 {
                                         icon: 'github',
