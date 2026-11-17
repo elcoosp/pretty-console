@@ -1,0 +1,21 @@
+# Curated domain glossary for @elcoosp/docs-toolkit (starlight-term-glossary)
+- term: "visible width"
+  locale: en
+  href: "/guides/text-layout/"
+  definition: "Display column count of styled text after stripping ANSI escape sequences and accounting for wide Unicode characters."
+- term: "OSC 8"
+  locale: en
+  href: "/guides/decorations/"
+  definition: "Terminal escape sequence protocol enabling clickable hyperlinks directly inside supported terminal emulators."
+- term: "largeur visible"
+  locale: fr
+  href: "/fr/guides/text-layout/"
+  definition: "Nombre de colonnes affichées à l’écran en ignorant les séquences ANSI et en tenant compte des caractères larges."
+- term: "canonical order"
+  locale: en
+  href: "/explanation/rendering-model/"
+  definition: "Deterministic ordering of ANSI SGR parameters emitted by styles so terminal output stays byte-identical across runs."
+- term: "ordre canonique"
+  locale: fr
+  href: "/fr/explanation/rendering-model/"
+  definition: "Ordonnancement déterministe des paramètres ANSI SGR garantissant une sortie identique d’une exécution à l’autre."
