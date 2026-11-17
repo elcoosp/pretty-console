@@ -3,7 +3,7 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 
 const plans = {
-        'index': `---
+  index: `---
 slug: /
 type: (none — splash landing page, not a Diátaxis type)
 audience: every visitor arriving at the site root
@@ -20,7 +20,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'tutorials/getting-started': `---
+  'tutorials/getting-started': `---
 slug: tutorials/getting-started
 type: tutorial
 audience: Rust developers who have never used pretty-console
@@ -47,7 +47,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/reusable-styles': `---
+  'guides/reusable-styles': `---
 slug: guides/reusable-styles
 type: how-to
 audience: CLI authors who repeat the same styling in many places
@@ -69,7 +69,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/status-lines': `---
+  'guides/status-lines': `---
 slug: guides/status-lines
 type: how-to
 audience: CLI authors printing progress and summary rows
@@ -92,7 +92,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/exact-colors': `---
+  'guides/exact-colors': `---
 slug: guides/exact-colors
 type: how-to
 audience: developers matching a design system or parsing colors from configuration
@@ -112,7 +112,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/degrade-colors': `---
+  'guides/degrade-colors': `---
 slug: guides/degrade-colors
 type: how-to
 audience: developers whose output must survive on 256-color or 16-color terminals (CI logs, ssh, IDE consoles)
@@ -135,7 +135,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/runtime-color-control': `---
+  'guides/runtime-color-control': `---
 slug: guides/runtime-color-control
 type: how-to
 audience: CLI authors wiring a --color flag or respecting no-color conventions
@@ -157,7 +157,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/decorations': `---
+  'guides/decorations': `---
 slug: guides/decorations
 type: how-to
 audience: CLI authors building banners, report boxes or clickable output
@@ -180,7 +180,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/text-layout': `---
+  'guides/text-layout': `---
 slug: guides/text-layout
 type: how-to
 audience: TUI and table authors aligning columns in a terminal
@@ -201,7 +201,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'guides/migrate-from-v1': `---
+  'guides/migrate-from-v1': `---
 slug: guides/migrate-from-v1
 type: how-to
 audience: maintainers upgrading a codebase from pretty-console 1.x
@@ -224,7 +224,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/span': `---
+  'reference/span': `---
 slug: reference/span
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -250,7 +250,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/style': `---
+  'reference/style': `---
 slug: reference/style
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -271,7 +271,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/color': `---
+  'reference/color': `---
 slug: reference/color
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -292,7 +292,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/line': `---
+  'reference/line': `---
 slug: reference/line
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -312,7 +312,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/panel': `---
+  'reference/panel': `---
 slug: reference/panel
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -330,7 +330,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/decorations': `---
+  'reference/decorations': `---
 slug: reference/decorations
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -348,7 +348,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/text-tools': `---
+  'reference/text-tools': `---
 slug: reference/text-tools
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -368,7 +368,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/color-control': `---
+  'reference/color-control': `---
 slug: reference/color-control
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -388,7 +388,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'reference/macros': `---
+  'reference/macros': `---
 slug: reference/macros
 type: reference
 audience: developers embedding pretty-console in a Rust application
@@ -407,7 +407,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'explanation/zero-cost-design': `---
+  'explanation/zero-cost-design': `---
 slug: explanation/zero-cost-design
 type: explanation
 audience: Rust developers evaluating the crate or curious about its performance model
@@ -429,7 +429,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'explanation/rendering-model': `---
+  'explanation/rendering-model': `---
 slug: explanation/rendering-model
 type: explanation
 audience: developers who need to predict what their output will look like in logs and tests
@@ -452,7 +452,7 @@ source_refs:
 approved_by: self (autonomous pipeline)
 `,
 
-        'explanation/design-history': `---
+  'explanation/design-history': `---
 slug: explanation/design-history
 type: explanation
 audience: contributors and evaluators comparing terminal-styling crates
@@ -476,8 +476,8 @@ approved_by: self (autonomous pipeline)
 
 await mkdir('docs/page-plans', { recursive: true });
 for (const [name, content] of Object.entries(plans)) {
-        const file = `docs/page-plans/${name}.md`;
-        await mkdir(file.slice(0, file.lastIndexOf('/')), { recursive: true });
-        await writeFile(file, content.endsWith('\n') ? content : content + '\n');
+  const file = `docs/page-plans/${name}.md`;
+  await mkdir(file.slice(0, file.lastIndexOf('/')), { recursive: true });
+  await writeFile(file, content.endsWith('\n') ? content : content + '\n');
 }
 console.log(`wrote ${Object.keys(plans).length} page plans`);

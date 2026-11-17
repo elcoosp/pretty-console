@@ -11,13 +11,13 @@
  *   #ddd6fe on #28203f       11.05:1 (AA)
  */
 :root {
-	--sl-color-accent-low: hsl(240 30% 93%);
-	--sl-color-accent: hsl(240 30% 35%);
-	--sl-color-accent-high: hsl(240 30% 28%);
+  --sl-color-accent-low: hsl(240 30% 93%);
+  --sl-color-accent: hsl(240 30% 35%);
+  --sl-color-accent-high: hsl(240 30% 28%);
 }
 
 [data-theme='dark'] {
-	--sl-color-accent-low: hsl(240 30% 16%);
-	--sl-color-accent: hsl(240 30% 60%);
-	--sl-color-accent-high: hsl(240 30% 75%);
+  --sl-color-accent-low: hsl(240 30% 16%);
+  --sl-color-accent: hsl(240 30% 60%);
+  --sl-color-accent-high: hsl(240 30% 75%);
 }

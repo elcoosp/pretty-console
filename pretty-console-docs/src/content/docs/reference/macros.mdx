@@ -7,7 +7,7 @@ type: reference
 Three declarative macros build styled values in one expression. They are
 exported at the crate root (`#[macro_export]`). Source: `src/macros.rs`.
 
-## paint!
+## paint
 
 `paint!(method+, format-args…) -> Span` — builds a
 [`Span`](/reference/span/) from `format!` arguments and a list of style
@@ -15,14 +15,14 @@ method names:
 
 <Code lang="rust" title="src/macros.rs" code={"use pretty_console::paint;\n\nlet msg = paint!(green bold, \"{} tests passed\", 12);\nmsg.println();"} />
 
-## style!
+## style
 
 `style!(method+) -> Style` — builds a [`Style`](/reference/style/) the same
 way:
 
 <Code lang="rust" title="src/macros.rs" code={"use pretty_console::style;\n\nlet danger = style!(bold red on_white);\ndanger.paint(\"boom\").println();"} />
 
-## line!
+## line
 
 `line!(span, …) -> Line` — builds a [`Line`](/reference/line/) by pushing
 each expression (spans or plain strings):

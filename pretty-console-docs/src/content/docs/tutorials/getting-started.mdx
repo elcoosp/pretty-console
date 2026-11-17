@@ -35,18 +35,18 @@ A tiny program that prints:
 2. **Add the crate.**
 
    <Tabs>
-     <TabItem label="cargo add">
+   <TabItem label="cargo add">
 
    <Code lang="sh" title="Terminal" code={"cargo add pretty-console"} />
 
-     </TabItem>
-     <TabItem label="Cargo.toml">
+   </TabItem>
+   <TabItem label="Cargo.toml">
 
    Add the dependency to the `[dependencies]` section of `Cargo.toml`:
 
    <Code lang="toml" title="Cargo.toml" code={"[dependencies]\npretty-console = \"2.0.0\""} />
 
-     </TabItem>
+   </TabItem>
    </Tabs>
 
    You should now see `Adding pretty-console v2.0.0` (or a newer patch) in the
@@ -64,9 +64,9 @@ A tiny program that prints:
    You should now see **Hello, world!** printed in bold red.
 
    <Aside type="note">
-     If your terminal does not support colors (for example in some CI logs),
-     the same text appears without escapes — printing detects that case for
-     you.
+   If your terminal does not support colors (for example in some CI logs),
+   the same text appears without escapes — printing detects that case for
+   you.
    </Aside>
 
 4. **Style a literal in place.** The `Styled` trait paints string literals

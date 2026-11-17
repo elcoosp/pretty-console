@@ -38,18 +38,18 @@ Un petit programme qui imprime :
 2. **Ajouter la crate.**
 
    <Tabs>
-     <TabItem label="cargo add">
+   <TabItem label="cargo add">
 
    <Code lang="sh" title="Terminal" code={"cargo add pretty-console"} />
 
-     </TabItem>
-     <TabItem label="Cargo.toml">
+   </TabItem>
+   <TabItem label="Cargo.toml">
 
    Ajoutez la dépendance à la section `[dependencies]` de `Cargo.toml` :
 
    <Code lang="toml" title="Cargo.toml" code={"[dependencies]\npretty-console = \"2.0.0\""} />
 
-     </TabItem>
+   </TabItem>
    </Tabs>
 
    Vous devriez maintenant voir `Adding pretty-console v2.0.0` (ou une version
@@ -69,9 +69,9 @@ Un petit programme qui imprime :
    Vous devriez maintenant voir **Hello, world!** imprimé en rouge gras.
 
    <Aside type="note">
-     Si votre terminal ne supporte pas les couleurs (par exemple dans certains
-     journaux de CI), le même texte apparaît sans échappements — l'impression
-     détecte ce cas pour vous.
+   Si votre terminal ne supporte pas les couleurs (par exemple dans certains
+   journaux de CI), le même texte apparaît sans échappements — l'impression
+   détecte ce cas pour vous.
    </Aside>
 
 4. **Styler un littéral en place.** Le trait `Styled` peint directement les
