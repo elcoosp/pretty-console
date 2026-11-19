@@ -1,31 +1,40 @@
 ---
-title: "pretty-console (FR)"
-description: "La boîte à outils de style de terminal fluide et zéro-coût pour Rust. Voir la page complète pour la documentation détaillée."
+title: Documentation pretty-console
+description: Journalisation structurée et colorée dans le terminal pour les CLI Rust et TypeScript.
 template: splash
 hero:
-  title: pretty-console
-  tagline: "La boîte à outils de style de terminal fluide et zéro-coût pour Rust — spans, lignes, panneaux, dégradés, hyperliens et outils texte compatibles ANSI, sans aucune dépendance."
+  tagline: Sortie console structurée sans configuration, niveaux de diagnostic et coloration ANSI adaptative.
   image:
     file: ../../../assets/logo.png
-    alt: Logo pretty-console
   actions:
-    - text: Commencer
-      link: /tutorials/getting-started/
+    - text: Démarrer
+      link: /fr/tutorials/getting-started/
       icon: right-arrow
-    - text: Voir sur GitHub
-      link: https://github.com/elcoosp/pretty-console
-      icon: external
+      variant: primary
+    - text: Référence API
+      link: /fr/reference/api/
+      icon: open-book
       variant: minimal
 ---
 
-import { CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
+import { DiataxisGrid, FeatureGrid, StatStrip } from '@elcoosp/docs-toolkit/components';
 
-<CardGrid>
-  <LinkCard title="Tutoriels" description="Apprenez en construisant : installez la crate et imprimez vos premières lignes stylées." href="/tutorials/getting-started/" />
-  <LinkCard title="Guides pratiques" description="Résolvez un problème précis : styles réutilisables, lignes d'état, dégradation, panneaux et plus." href="/guides/reusable-styles/" />
-  <LinkCard title="Référence" description="Consultez avec précision n'importe quel membre de Span, Style, Color, Line, Panel ou macro." href="/reference/span/" />
-  <LinkCard title="Explication" description="Comprenez la conception zéro-coût, le modèle de rendu et pourquoi la v2 existe." href="/explanation/zero-cost-design/" />
-</CardGrid>
+<StatStrip items={[
+  { value: '0 dép.', label: 'Moteur de formatage natif' },
+  { value: 'TTY-aware', label: 'Détection NO_COLOR & CI auto' },
+  { value: 'Structuré', label: 'Champs clé-valeur et spans' },
+  { value: 'Sous-ms', label: 'Débit tamponné haute vitesse' },
+]} />
 
+## Pourquoi pretty-console
 
-Rust 1.85+ · Édition 2024 · Zéro dépendance · `#![forbid(unsafe_code)]` · [crates.io](https://crates.io/crates/pretty-console) · [docs.rs](https://docs.rs/pretty_console)
+<FeatureGrid items={[
+  { title: 'ANSI adaptatif et NO_COLOR', description: 'Détecte automatiquement les capacités couleur du terminal, les sorties redirigées et les environnements CI.', icon: 'laptop' },
+  { title: 'Champs structurés clé-valeur', description: 'Attachez des paires de contexte typées à chaque événement tout en gardant un alignement lisible.', icon: 'document' },
+  { title: 'Indicateurs de progression', description: 'Affichez des étapes claires qui basculent proprement vers des lignes simples dans les journaux non interactifs.', icon: 'rocket' },
+  { title: 'Loggers scopés', description: 'Créez des sous-loggers avec préfixes hérités et filtres de sévérité pour vos sous-commandes CLI.', icon: 'setting' },
+]} />
+
+## Explorer la documentation
+
+<DiataxisGrid stagger />

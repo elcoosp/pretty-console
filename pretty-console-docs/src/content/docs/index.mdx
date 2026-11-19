@@ -1,32 +1,40 @@
 ---
 title: pretty-console
-description: "The fluent, zero-cost terminal styling toolkit for Rust. See the full page for detailed documentation."
+description: Structured, colorized terminal logging and diagnostics for Rust and TypeScript CLIs.
 template: splash
 hero:
-  title: pretty-console
-  tagline: The fluent, zero-cost terminal styling toolkit for Rust — spans, lines, panels, gradients, hyperlinks and ANSI-aware text tools, with zero dependencies.
+  tagline: Zero-boilerplate structured console output, leveled diagnostics, and adaptive ANSI styling.
   image:
     file: ../../assets/logo.png
-    alt: pretty-console logo
   actions:
-    - text: Get started
+    - text: Get Started
       link: /tutorials/getting-started/
       icon: right-arrow
-    - text: View on GitHub
-      link: https://github.com/elcoosp/pretty-console
-      icon: external
+      variant: primary
+    - text: API Reference
+      link: /reference/api/
+      icon: open-book
       variant: minimal
 ---
 
-import { CardGrid, LinkButton, LinkCard } from '@astrojs/starlight/components';
-import { DiataxisGrid } from '@elcoosp/docs-toolkit/components';
+import { DiataxisGrid, FeatureGrid, StatStrip } from '@elcoosp/docs-toolkit/components';
 
-<CardGrid>
-  <LinkCard title="Tutorials" description="Learn by building: install the crate and print your first styled lines." href="/tutorials/getting-started/" />
-  <LinkCard title="How-to guides" description="Solve a specific problem: reusable styles, status lines, degradation, panels and more." href="/guides/reusable-styles/" />
-  <LinkCard title="Reference" description="Look up any Span, Style, Color, Line, Panel or macro member precisely." href="/reference/span/" />
-  <LinkCard title="Explanation" description="Understand the zero-cost design, the rendering model and why v2 exists." href="/explanation/zero-cost-design/" />
-</CardGrid>
+<StatStrip items={[
+  { value: '0 deps', label: 'Core formatting engine' },
+  { value: 'TTY-aware', label: 'Auto NO_COLOR & CI fallback' },
+  { value: 'Structured', label: 'Key-value & span contexts' },
+  { value: 'Sub-ms', label: 'Buffered writer throughput' },
+]} />
 
+## Why pretty-console
 
-Rust 1.85+ · Edition 2024 · Zero dependencies · `#![forbid(unsafe_code)]` · [crates.io](https://crates.io/crates/pretty-console) · [docs.rs](https://docs.rs/pretty_console)
+<FeatureGrid items={[
+  { title: 'Adaptive ANSI & NO_COLOR', description: 'Automatically detects terminal color capabilities, piped stdout, and CI environments without manual flags.', icon: 'laptop' },
+  { title: 'Structured Key-Value Fields', description: 'Attach typed context pairs to any log event while keeping human-readable alignment in development.', icon: 'document' },
+  { title: 'Progress & Step Spinners', description: 'Render clean multi-step task indicators that degrade gracefully to plain lines in non-interactive logs.', icon: 'rocket' },
+  { title: 'Scoped Loggers', description: 'Create child loggers with inherited prefixes and severity filters for modular CLI subcommands.', icon: 'setting' },
+]} />
+
+## Explore the documentation
+
+<DiataxisGrid stagger />
