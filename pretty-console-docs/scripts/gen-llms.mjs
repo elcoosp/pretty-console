@@ -23,7 +23,7 @@ function parseFrontmatter(text) {
   const meta = {};
   for (const line of block.split('\n')) {
     const m = line.match(/^(title|description|type):\s*(.*)$/);
-    if (m) meta[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    if (m) meta[m[1]] = m[2].replaceAll(/^["']|["']$/g, '');
   }
   return meta;
 }
